@@ -1,0 +1,41 @@
+from abc import abstractmethod
+
+class ExplorationResults():
+    def __init__(self):
+        self.policies = [] # Will be a list containing policy parameters
+        self.trajs = [] # Will be a list containing each policy corresponding transitions (at+st)
+
+    def add(self, policies, trajs):
+        self.policies.extend(policies) # Warning: policies need to be a list [] of np.arrays
+        self.trajs.extend(trajs) # Warning: trajs need to be a list [] of np.arrays
+
+    def get_tuple_by_index(self, index):
+        """
+        Returns a tuple (policy, traj) corresponding to the index-th exploration policy
+        """
+        return (self.policies[i], self.trajs[i])
+        
+class ExplorationMethod():
+    def __init__(self, exploration_params=None):
+        ## Process exploration parameters
+        self._process_params(exploration_params)
+        self.exploration_results = ExplorationResults()
+
+    @abstractmethod
+    def _process_params(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _explore(self, gym_env, exploration_horizon):
+        """
+        Args:
+            gym_env: Environment on which to perform exploration, already in the state to explore from
+        
+        Returns:
+            exploration_results: object storing all policies and their respective trajectories
+            budget_used: total amount of interactions with environment 
+        """
+        raise NotImplementedError
+
+    def __call__(self, gym_env, exploration_horizon):
+        self._explore(gym_env, exploration_horizon)
