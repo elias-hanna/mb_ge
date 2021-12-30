@@ -49,7 +49,13 @@ class GoExplore():
         pass
 
 if __name__ == '__main__':
-    controller_params = {'n_hidden_layers': 2, 'n_neurons_per_hidden': 50}
+    controller_params = \
+    {
+        'controller_input_dim': 0,
+        'controller_output_dim': 0,
+        'n_hidden_layers': 2,
+        'n_neurons_per_hidden': 50
+    }
     params = \
     {
         'controller_type': SimpleNeuralController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
