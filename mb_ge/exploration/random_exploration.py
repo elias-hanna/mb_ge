@@ -10,32 +10,9 @@ from exploration_method import ExplorationMethod
 from exploration_method import ExplorationResults
 
 def RandomExploration(ExplorationMethod):
-    # def __init__(self, exploration_params=None):
-        # super.__init__(exploration_params=exploration_params)
-
     def _process_params(self, params):
-        if 'nb_eval_exploration' in params:
-            self.nb_eval = params['nb_eval_exploration']
-        else:
-            self.nb_eval = 10
-
-        if 'nb_thread_exploration' in params:
-            self.nb_thread = params['nb_thread_exploration']
-        else:
-            self.nb_thread = cpu_count()-1 or 1
-
-        if 'controller_params' in params:
-            controller_params = params['controller_params']
-            if 'n_hidden_layers' in controller_params:
-                self.n_hidden_layers = controller_params['n_hidden_layers']
-            else:
-                self.n_hidden_layers = 2
-                
-            if 'n_neurons_per_hidden' in controller_params:
-                self.n_neurons_per_hidden = controller_params['n_neurons_per_hidden']
-            else:
-                self.n_neurons_per_hidden = 50
-            
+        super()._process_params(params)
+        
     def _single_policy_eval(self, x):
         controller = SimpleNeuralController(self.gym_env.obs_space.shape[0],
                                             self.gym_env.action_space.shape[0],

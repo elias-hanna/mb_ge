@@ -1,5 +1,6 @@
 import numpy as np
-from diversity_algorithms.controllers.fixed_structure_nn_numpy import SimpleNeuralControllerNumpy as SimpleNeuralController
+
+from mb_ge.controller.nn_controller import NeuralNetworkController
 
 class GoExplore():
 
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     }
     params = \
     {
-        'controller_type': SimpleNeuralController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
+        'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
         'controller_params': controller_params,
         'budget': 1000,
         'exploration_horizon': 10,

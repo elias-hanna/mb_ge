@@ -1,4 +1,8 @@
+## Abstract layer imports
 from abc import abstractmethod
+
+## Multiprocessing imports
+from multiprocessing import cpu_count
 
 class ExplorationResults():
     def __init__(self):
@@ -16,14 +20,21 @@ class ExplorationResults():
         return (self.policies[i], self.trajs[i])
         
 class ExplorationMethod():
-    def __init__(self, exploration_params=None):
+    def __init__(self, params=None):
         ## Process exploration parameters
-        self._process_params(exploration_params)
+        self._process_params(params)
         self.exploration_results = ExplorationResults()
 
-    @abstractmethod
     def _process_params(self):
-        raise NotImplementedError
+        if 'nb_eval_exploration' in params:
+            self.nb_eval = params['nb_eval_exploration']
+        else:
+            self.nb_eval = 10
+
+        if 'nb_thread_exploration' in params:
+            self.nb_thread = params['nb_thread_exploration']
+        else:
+            self.nb_thread = cpu_count()-1 or 1
 
     @abstractmethod
     def _explore(self, gym_env, exploration_horizon):
