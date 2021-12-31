@@ -1,8 +1,11 @@
 from abc import abstractmethod
 
+from copy import deepcopy
+
 class Controller():
     def __init__(self, params=None):
         self._process_params(params)
+        # self._init_controller(params)
         self.controller = None
         self.parameters = None ## Warning, this is the policy parameters not the class parameters uwu
         self.n_params = None
@@ -23,7 +26,13 @@ class Controller():
         else:
             raise Exception('Controller _process_params error: controller_params not in params')
 
-        
+    def copy(self):
+        """
+        Returns:
+            copy: complete copy of the object
+        """
+        return deepcopy(self)
+    
     @abstractmethod
     def compute_action(self, obs):
         """
@@ -40,6 +49,15 @@ class Controller():
         """
         Sets the controller parameters
         Args:
+            parameters: 1 dimensionnal parameters vector
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_parameters(self):
+        """
+        Gets the controller parameters
+        Returns:
             parameters: 1 dimensionnal parameters vector
         """
         raise NotImplementedError

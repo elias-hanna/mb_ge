@@ -2,7 +2,7 @@
 from diversity_algorithms.controllers.fixed_structure_nn_numpy import SimpleNeuralControllerNumpy as SimpleNeuralController
 
 ## Local imports
-from controller import Controller
+from mb_ge.controller.controller import Controller
 
 class NeuralNetworkController(Controller):
     def __init__(self, params=None):
@@ -13,7 +13,9 @@ class NeuralNetworkController(Controller):
 
         self.n_params = self.controller.n_weights
         self.params = self.controller.get_parameters()
-            
+
+    # def _init_controller(self, params):
+        
     def compute_action(self, obs):
         """
         Args:
@@ -32,5 +34,13 @@ class NeuralNetworkController(Controller):
         """
         self.controller.set_parameters(parameters)
 
+    def get_parameters(self):
+        """
+        Gets the controller parameters
+        Returns:
+            parameters: 1 dimensionnal parameters vector
+        """
+        return self.controller.get_parameters()
+        
     def __call__(self, obs):
         return self.compute_action(obs)
