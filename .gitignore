@@ -6,3 +6,5 @@ dist/
 *.out
 *~
 data/
+*#*
+*/__pycache__/*
