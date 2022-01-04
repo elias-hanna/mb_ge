@@ -5,7 +5,9 @@ from sklearn.neighbors import KDTree
 
 class Archive():
     def __init__(self, params=None):
-        kdt = KDTree(c, leaf_size=30, metric='euclidean')
+        ## kdt will store either the centroids of the behaviour archive
+        self._centroids_kdt = KDTree(c, leaf_size=40, metric='euclidean')
+        self._behaviour_archive_kdt = None
 
         pass
 
