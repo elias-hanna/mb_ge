@@ -68,7 +68,7 @@ if __name__ == '__main__':
         'nb_thread_exploration': 6,
 
         'fixed_grid_min': 1.3,
-        'fixed_grid_max': 4.1,
+        'fixed_grid_max': 10,
         'fixed_grid_div': 5,
         
         'policy_param_init_min': -5,
