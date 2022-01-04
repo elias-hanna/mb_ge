@@ -1,4 +1,4 @@
-from archive import Archive
+from mb_ge.archive.archive import Archive
 
 from math import floor
 
@@ -26,7 +26,6 @@ class FixedGridArchive(Archive):
         ## WARNING: element.descriptor must be a single array
         ## Here descriptor values are normalized in [0,1] and scaled to the number of cells
         ## each dimension of the archive is divided in
-        # import pdb; pdb.set_trace()
         archive_index_str = ''.join([str(i)+str(floor((element.descriptor[i]-self._grid_min
                                                        /(self._grid_max-self._grid_min))
                                                *self._grid_div))
