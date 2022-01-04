@@ -3,14 +3,22 @@ from abc import abstractmethod
 ## Archive manipulation imports
 from sklearn.neighbors import KDTree
 
+class Element():
+    def __init__(self, descriptor=None, trajectory=None, reward=None, policy_parameters=None):
+        self.descriptor = descriptor
+        self.trajectory = trajectory
+        self.reward = reward
+        self.policy_parameters = policy_parameters
+    
 class Archive():
     def __init__(self, params=None):
         ## kdt will store either the centroids of the behaviour archive
-        self._centroids_kdt = KDTree(c, leaf_size=40, metric='euclidean')
+        self._centroids_kdt = None
         self._behaviour_archive_kdt = None
+        ## Archive is a dict
+        self._archive = dict()
 
-        pass
-
+    
     def _process_params(self, params):
         pass
     
@@ -25,16 +33,6 @@ class Archive():
         raise NotImplementedError
 
     @abstractmethod
-    def remove(self, element):
-        """
-        Removes an element from the archive
-
-        Args:
-            element: element to be removed from the archive
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def compare(self, element1, element2):
         """
         Compare two elements given the archive rules.
@@ -44,7 +42,6 @@ class Archive():
             element2: element to be compared to element1
 
         Returns:
-            result: 1 if element1 > element2, -1 if element2 > element1, 0 if element1 == element2,
-                    given the archive rules.
+            result: 1 if element1 > element2, -1 if element2 > element1
         """
         raise NotImplementedError

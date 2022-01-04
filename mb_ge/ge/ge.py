@@ -61,10 +61,16 @@ if __name__ == '__main__':
     {
         'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
         'controller_params': controller_params,
+        
         'budget': 1000,
         'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
+
+        'fixed_grid_min': 1.3,
+        'fixed_grid_max': 4.1,
+        'fixed_grid_div': 5,
+        
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
     }
