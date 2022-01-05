@@ -1,8 +1,11 @@
+## Local imports
 from mb_ge.archive.archive import Archive
+from mb_ge.archive.archive import Cell
 
+## Calculus imports
 from math import floor
 
-class FixedGridArchive(Archive):
+class FixedGridElementArchive(Archive):
     def __init__(self, params=None):
         super().__init__(params)
         self._process_params(params)
@@ -20,8 +23,19 @@ class FixedGridArchive(Archive):
             self._grid_div = params['fixed_grid_div']
         else:
             raise Exception('FixedGridArchive _process_params error: fixed_grid_div not in params')
-        
+        if 'archive_type' in params:
+            self._archive_type = params['archive_type']
+            if self._archive_type not in ['element', 'cell']:
+                raise Exception(f'FixedGridArchive _process_params error: unknow archive_type \
+                -> {self._archive_type}')
+        else:
+            raise Exception('FixedGridArchive _process_params error: archive_type not in params')
 
+    def _compare(self, element1, element2):
+        if element1.reward > element2.reward or len(element1.trajectory)<len(element2.trajectory):
+            return 1
+        return 0
+    
     def add(self, element):
         ## WARNING: element.descriptor must be a single array
         ## Here descriptor values are normalized in [0,1] and scaled to the number of cells
@@ -30,21 +44,22 @@ class FixedGridArchive(Archive):
                                                        /(self._grid_max-self._grid_min))
                                                *self._grid_div))
                                      for i in range(len(element.descriptor))])
-
         
-        
-        if archive_index_str in self._archive: ## Case cell already contains an element
+        if archive_index_str in self._archive: ## Case archive already exists at index
             if self.compare(element, self._archive[archive_index_str]):
-                self._archive[archive_index_str] = element
-            
+                if self._archive_type == 'cell':
+                    self._archive[archive_index_str].add(element)
+                elif self._archive_type == 'element':
+                    self._archive[archive_index_str] = element
+                    
         else:
-            self._archive[archive_index_str] = element
-
-    def compare(self, element1, element2):
-        if element1.reward > element2.reward or len(element1.trajectory)<len(element2.trajectory):
-            return 1
-        return 0
-
+            if self._archive_type == 'cell':
+                cell = Cell()
+                cell.add(element)
+                self._archive[archive_index_str] = cell
+            elif self._archive_type == 'element':
+                self._archive[archive_index_str] = element
+        
 if __name__ == '__main__':
     from archive import Element
     from mb_ge.controller.nn_controller import NeuralNetworkController
@@ -74,7 +89,7 @@ if __name__ == '__main__':
         'policy_param_init_max': 5,
     }
 
-    archive = FixedGridArchive(params)
+    archive = FixedGridElementArchive(params)
     elements = []
     for _ in range(params['nb_eval_exploration']):
         x = np.random.uniform(low=params['policy_param_init_min'],

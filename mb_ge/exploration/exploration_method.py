@@ -44,7 +44,8 @@ class ExplorationMethod():
             raise Exception('ExplorationMethod _process_params error: controller_type not in params')
 
     @abstractmethod
-    def _explore(self, gym_env, last_obs, exploration_horizon):
+    # def _explore(self, gym_env, last_obs, exploration_horizon):
+    def _explore(self, gym_env, prev_element, exploration_horizon):
         """
         Args:
             gym_env: Environment on which to perform exploration, already in the state to explore from

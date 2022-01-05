@@ -11,6 +11,7 @@ from copy import copy
 from exploration_method import ExplorationMethod
 from exploration_method import ExplorationResults
 from mb_ge.controller.nn_controller import NeuralNetworkController
+from mb_ge.archive.archive import Element
 
 class RandomExploration(ExplorationMethod):
     def __init__(self, params=None):
@@ -20,7 +21,7 @@ class RandomExploration(ExplorationMethod):
     def _process_params(self, params):
         super()._process_params(params)
         
-    def _single_policy_eval(self, x, gym_env, last_obs):
+    def _single_policy_eval(self, x, gym_env, prev_element):
         ## Create a copy of the controller
         controller = self.controller.copy()
         ## Verify that x and controller parameterization have same size
@@ -30,18 +31,26 @@ class RandomExploration(ExplorationMethod):
         env = copy(gym_env) ## need to verify this works
 
         traj = []
-        obs = last_obs
+        obs = prev_element.trajectory[-1]
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
             action = controller(obs)
             obs, reward, done, info = env.step(action)
             traj.append((obs, reward, done, info))
-        return traj
+        element = Element()
+        ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
+        element.descriptor = traj[0][-1]
+        element.trajectory = traj[0]
+        element.reward = sum(traj[1])
+        element.policy_parameters = x
+        element.previous_element = prev_element
+        return element
 
-    def _compute_spent_budget(self, trajs):
-        return sum([len(traj) for traj in trajs])
+    def _compute_spent_budget(self, elements):
+        return sum([len(el.trajectory) for el in elements])
         
-    def _explore(self, gym_env, last_obs, exploration_horizon):
+    # def _explore(self, gym_env, last_obs, exploration_horizon):
+    def _explore(self, gym_env, prev_element, exploration_horizon):
         ## Set exploration horizon (here and not in params because it might be dynamic)
         self.exploration_horizon = exploration_horizon
         ## Setup multiprocessing pool
@@ -59,13 +68,17 @@ class RandomExploration(ExplorationMethod):
             to_evaluate += [x]
         env_map_list = [gym_env for _ in range(self.nb_eval)]
         ## Evaluate all generated policies on given environment
-        trajs_list = pool.starmap(self._single_policy_eval, zip(to_evaluate, repeat(gym_env), repeat(last_obs)))
+        elements = pool.starmap(self._single_policy_eval, zip(to_evaluate, repeat(gym_env), repeat(prev_element)))
+        
+        ## Close the multiprocessing pool
         pool.close()
 
-        results = ExplorationResults()
-        results.add(to_evaluate, trajs_list)
-
-        return to_evaluate, trajs_list, self._compute_spent_budget(trajs_list)
+        return elements, self._compute_spent_budget(elements)
+    
+        # results = ExplorationResults()
+        # results.add(to_evaluate, trajs_list)
+        
+        # return to_evaluate, trajs_list, self._compute_spent_budget(trajs_list)
         # return results, self._compute_spent_budget(trajs_list)
 
 if __name__ == '__main__':
