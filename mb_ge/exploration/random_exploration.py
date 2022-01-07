@@ -8,14 +8,13 @@ from multiprocessing import cpu_count
 from copy import copy
 
 ## Local imports
-from exploration_method import ExplorationMethod
-from exploration_method import ExplorationResults
+from mb_ge.exploration.exploration_method import ExplorationMethod
 from mb_ge.controller.nn_controller import NeuralNetworkController
-from mb_ge.archive.archive import Element
+from mb_ge.utils.element import Element
 
 class RandomExploration(ExplorationMethod):
     def __init__(self, params=None):
-        super().__init__(params)
+        super().__init__(params=params)
         self.gym_env = None
         
     def _process_params(self, params):
@@ -32,18 +31,16 @@ class RandomExploration(ExplorationMethod):
 
         traj = []
         obs = prev_element.trajectory[-1]
+        cum_rew = 0
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
             action = controller(obs)
             obs, reward, done, info = env.step(action)
-            traj.append((obs, reward, done, info))
-        element = Element()
+            traj.append(obs)
+            cum_rew += reward
+        element = Element(descriptor=traj[-1], trajectory=traj, reward=cum_rew,
+                          policy_parameters=x, previous_element=prev_element)
         ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
-        element.descriptor = traj[0][-1]
-        element.trajectory = traj[0]
-        element.reward = sum(traj[1])
-        element.policy_parameters = x
-        element.previous_element = prev_element
         return element
 
     def _compute_spent_budget(self, elements):
@@ -62,8 +59,8 @@ class RandomExploration(ExplorationMethod):
         ## Random policy parametrizations creation
         for _ in range(self.nb_eval):
             ## Create a random policy parametrization 
-            x = np.random.uniform(low=params['policy_param_init_min'],
-                                  high=params['policy_param_init_max'],
+            x = np.random.uniform(low=self.policy_param_init_min,
+                                  high=self.policy_param_init_max,
                                   size=policy_representation_dim)
             to_evaluate += [x]
         env_map_list = [gym_env for _ in range(self.nb_eval)]
@@ -74,12 +71,6 @@ class RandomExploration(ExplorationMethod):
         pool.close()
 
         return elements, self._compute_spent_budget(elements)
-    
-        # results = ExplorationResults()
-        # results.add(to_evaluate, trajs_list)
-        
-        # return to_evaluate, trajs_list, self._compute_spent_budget(trajs_list)
-        # return results, self._compute_spent_budget(trajs_list)
 
 if __name__ == '__main__':
     ## Test imports

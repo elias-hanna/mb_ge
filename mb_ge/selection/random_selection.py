@@ -1,20 +1,19 @@
 import random
 
 ## Local imports
-from selection import SelectionMethod
+from mb_ge.selection.selection import SelectionMethod
 
 class RandomSelection(SelectionMethod):
-    def _select_cell(self, archive):
-        return random.choice(list(archive._archive.keys()))
-
-    def select_element(self, archive):
-        return random.choice(list(archive._archive.values()))
+    def select_element_from_cell_archive(self, archive):
+        selected_cell = random.choice(list(archive._archive.values()))
+        return random.choice(selected_cell._elements)
     
 if __name__ == '__main__':
-    from mb_ge.archive.archive import Element
+    from mb_ge.utils.element import Element
     from mb_ge.archive.fixed_grid_archive import FixedGridArchive
     from mb_ge.controller.nn_controller import NeuralNetworkController
     import numpy as np
+    
     controller_params = \
     {
         'controller_input_dim': 0,

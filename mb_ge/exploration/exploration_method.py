@@ -27,11 +27,18 @@ class ExplorationMethod():
         self.exploration_results = ExplorationResults()
 
     def _process_params(self, params):
+        if 'policy_param_init_min' in params:
+            self.policy_param_init_min= params['policy_param_init_min']
+        else:
+            raise Exception('ExplorationMethod _process_params error: policy_param_init_min not in params')
+        if 'policy_param_init_max' in params:
+            self.policy_param_init_max = params['policy_param_init_max']
+        else:
+            raise Exception('ExplorationMethod _process_params error: policy_param_init_min not in params')
         if 'nb_eval_exploration' in params:
             self.nb_eval = params['nb_eval_exploration']
         else:
-            self.nb_eval = 10
-
+            raise Exception('ExplorationMethod _process_params error: nb_eval_exploration not in params')
         if 'nb_thread_exploration' in params:
             self.nb_thread = params['nb_thread_exploration']
         else:
@@ -49,13 +56,11 @@ class ExplorationMethod():
         """
         Args:
             gym_env: Environment on which to perform exploration, already in the state to explore from
-            last_obs: last observation on current environment
+            prev_element: previous element from which to start
             exploration_horizon: Max number of steps performed on gym_env by exploration policies
 
         Returns:
-            policies: obtained policies
-            # exploration_results: object storing all policies and their respective trajectories
-            trajs: corresponding trajectories (ordered)
+            elements: obtained Elements (desc, traj, rew, params, prev_elem)
             budget_used: total amount of interactions with environment 
         """
         raise NotImplementedError

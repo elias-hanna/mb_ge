@@ -1,11 +1,11 @@
 ## Local imports
 from mb_ge.archive.archive import Archive
-from mb_ge.archive.archive import Cell
+from mb_ge.utils.cell import Cell
 
 ## Calculus imports
 from math import floor
 
-class FixedGridElementArchive(Archive):
+class FixedGridArchive(Archive):
     def __init__(self, params=None):
         super().__init__(params)
         self._process_params(params)
