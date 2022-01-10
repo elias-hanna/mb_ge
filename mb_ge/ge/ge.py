@@ -33,10 +33,13 @@ class GoExplore():
         ## reset gym environment
         obs = self.gym_env.reset()
         ## add first state to state_archive
-        init_elem = Element(descriptor=self.gym_env.sim.data.qpos[:2], trajectory=[obs], reward=0.)
+        init_elem = Element(descriptor=self.gym_env.sim.data.qpos[:2], trajectory=[obs], reward=0.,
+                            sim_state={'qpos': self.gym_env.sim.data.qpos,
+                                       'qvel': self.gym_env.sim.data.qvel})
         # import pdb; pdb.set_trace()
         self.state_archive.add(init_elem)
         itr = 0
+        budget_used = 0
         done = False
         while itr < self.budget and not done:
             obs = self.gym_env.reset()
@@ -44,13 +47,17 @@ class GoExplore():
             el = self._selection_method.select_element_from_cell_archive(self.state_archive)
             # import pdb; pdb.set_trace()
             ## Go back to the selected state
-            budget_used = self._go_method.go(self.gym_env, el)
+            budget_used += self._go_method.go(self.gym_env, el)
             ## Explore from the selected state
-            elements, budget_used = self._exploration_method(self.gym_env, el,
+            elements, b_used = self._exploration_method(self.gym_env, el,
                                                              self.h_exploration)
+            budget_used += b_used
             ## Update archive and other datasets
             for elem in elements:
                 self.state_archive.add(elem)
+            itr = budget_used
+            # print(itr, ' | ', self.budget)
+            print(budget_used, ' | ', self.budget)
             
     def __call__(self):
         pass
@@ -74,7 +81,7 @@ if __name__ == '__main__':
         'nb_thread_exploration': 6,
 
         'archive_type': 'cell',
-        'fixed_grid_min': 1.3,
+        'fixed_grid_min': -10,
         'fixed_grid_max': 10,
         'fixed_grid_div': 5,
         
@@ -90,6 +97,38 @@ if __name__ == '__main__':
     import gym
     import gym_wrapper # for swimmerfullobs
     env = gym.make('SwimmerFullObs-v0')
+    # env = gym.make('Swimmer-v2')
+
+    # import copy
+    # obs = env.reset()
+    # loc_env_shallow = copy.copy(env)
+    # qpos = env.sim.data.qpos
+    # qvel = env.sim.data.qvel    
+    # loc_env_shallow.set_state(qpos, qvel)
+    # for i in range(0,5):
+    #     print(i)
+    #     # import pdb; pdb.set_trace()
+    #     # obs = env.reset()
+    #     loc_env_deep = copy.deepcopy(env)
+    #     loc_env_deep_unw = copy.deepcopy(env.unwrapped)
+    #     loc_env_deep_unw_unw = copy.deepcopy(env.unwrapped.unwrapped)
+    #     loc_env_deep_unw_unw_unw = copy.deepcopy(env.unwrapped.unwrapped.unwrapped)
+    #     action = [1., 1.]
+        
+    #     o, r, d, i = loc_env_deep.step(action)
+    #     print('deep copy: ', o)
+    #     o, r, d, i = loc_env_deep_unw.step(action)
+    #     print('deep copy unw: ', o)
+    #     o, r, d, i = loc_env_deep_unw_unw.step(action)
+    #     print('deep copy unw unw: ', o)
+    #     o, r, d, i = loc_env_deep_unw_unw_unw.step(action)
+    #     print('deep copy unw unw unw: ', o)
+    #     o, r, d, i = loc_env_shallow.step(action)
+    #     print('shallow copy: ', o)
+    #     o, r, d, i = env.step(action)
+    #     print('env: ', o)
+    # exit()
+        
     ge = GoExplore(params=params, budget=1000, gym_env=env, selection_method=RandomSelection,
                    go_method=ExecutePolicyGo, exploration_method=RandomExploration,
                    state_archive=FixedGridArchive)

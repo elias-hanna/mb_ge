@@ -31,7 +31,7 @@ class FixedGridArchive(Archive):
         else:
             raise Exception('FixedGridArchive _process_params error: archive_type not in params')
 
-    def _compare(self, element1, element2):
+    def compare(self, element1, element2):
         if element1.reward > element2.reward or len(element1.trajectory)<len(element2.trajectory):
             return 1
         return 0
@@ -40,16 +40,19 @@ class FixedGridArchive(Archive):
         ## WARNING: element.descriptor must be a single array
         ## Here descriptor values are normalized in [0,1] and scaled to the number of cells
         ## each dimension of the archive is divided in
-        archive_index_str = ''.join([str(i)+str(floor((element.descriptor[i]-self._grid_min
-                                                       /(self._grid_max-self._grid_min))
-                                               *self._grid_div))
+        a = [str(i)+str(floor((element.descriptor[i]-self._grid_min)
+                              /(self._grid_max-self._grid_min)*self._grid_div))
+             for i in range(len(element.descriptor))]
+        archive_index_str = ''.join([str(i)+str(floor((element.descriptor[i]-self._grid_min)
+                                                      /(self._grid_max-self._grid_min)
+                                                      *self._grid_div))
                                      for i in range(len(element.descriptor))])
         
         if archive_index_str in self._archive: ## Case archive already exists at index
-            if self.compare(element, self._archive[archive_index_str]):
-                if self._archive_type == 'cell':
-                    self._archive[archive_index_str].add(element)
-                elif self._archive_type == 'element':
+            if self._archive_type == 'cell':
+                self._archive[archive_index_str].add(element)
+            elif self._archive_type == 'element':
+                if self.compare(element, self._archive[archive_index_str]):
                     self._archive[archive_index_str] = element
                     
         else:
