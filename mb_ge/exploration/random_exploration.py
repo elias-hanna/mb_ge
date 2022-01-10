@@ -29,25 +29,31 @@ class RandomExploration(ExplorationMethod):
         ## Set controller parameters
         controller.set_parameters(x)
         # env = deepcopy(gym_env) ## need to verify this works
+
+        # print("prev desc: ", prev_element.descriptor)
+        # print("prev last traj: ", prev_element.trajectory[-1])
+        # print("gym_env curr obs: ", gym_env._get_obs())
+        # print("prev sim state: ", prev_element.sim_state)
         env = copy(gym_env) ## need to verify this works
         env.set_state(prev_element.sim_state['qpos'], prev_element.sim_state['qvel'])
-
+        # print("env curr obs: ", env._get_obs())
+        # print("\n\n\n")
         traj = []
         obs = prev_element.trajectory[-1]
         cum_rew = 0
-
+        # traj.append(obs)
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
-            traj.append(obs)
             action = controller(obs)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
-        print(env.sim.data.qpos)
-        print(env.sim.data.qvel)
+            traj.append(obs)
+        # print(env.sim.data.qpos)
+        # print(env.sim.data.qvel)
         element = Element(descriptor=traj[-1][:2], trajectory=traj, reward=cum_rew,
                           policy_parameters=x, previous_element=prev_element,
-                          sim_state={'qpos': env.sim.data.qpos,
-                                     'qvel': env.sim.data.qvel})
+                          sim_state={'qpos': copy(env.sim.data.qpos),
+                                     'qvel': copy(env.sim.data.qvel)})
         ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
         return element
 
@@ -59,8 +65,7 @@ class RandomExploration(ExplorationMethod):
         ## Set exploration horizon (here and not in params because it might be dynamic)
         self.exploration_horizon = exploration_horizon
         ## Setup multiprocessing pool
-        # pool = Pool(processes=self.nb_thread)
-        pool = Pool(processes=1)
+        pool = Pool(processes=self.nb_thread)
         ## Get policy reprensation size
         policy_representation_dim = len(self.controller.get_parameters())
         ## Inits
