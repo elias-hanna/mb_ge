@@ -4,7 +4,6 @@ from itertools import repeat
 
 ## Multiprocessing imports
 from multiprocessing import Pool
-from multiprocessing import cpu_count
 from copy import copy
 from copy import deepcopy
 
