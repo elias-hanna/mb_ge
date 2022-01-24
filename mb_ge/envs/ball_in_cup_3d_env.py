@@ -16,7 +16,7 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self.relative_obs = relative_obs
         
         utils.EzPickle.__init__(self)
-        mujoco_env.MujocoEnv.__init__(self, "/home/elias-hanna/Documents/thesis/codes/billard_exps/mb_ge/mb_ge/envs/assets/ball_in_cup_3d.xml", 2)
+        mujoco_env.MujocoEnv.__init__(self, "/home/elias/Documents/thesis/billiard_exps/mb_ge/mb_ge/envs/assets/ball_in_cup_3d.xml", 2)
         self.init_qpos = [0. ,0. ,0.   # initial cup position in cartesian space
                           ,0. ,0. ,0.] # initial ball posiiton in cartesian space
 
@@ -103,7 +103,9 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
                 self.sim.data.qpos.flat[3:], # ball pose
                 self.sim.data.qvel.flat[3:],) # ball vel
             )
-        
+    def get_relative_pos(self):
+        return self.get_site_pos("target") - self.get_site_pos("ball") # target - ball pose
+    
     def get_site_pos(self, site_name):
         if site_name == "cup":
             return self.sim.data.site_xpos[0]

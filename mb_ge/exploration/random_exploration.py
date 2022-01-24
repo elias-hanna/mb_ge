@@ -49,7 +49,7 @@ class RandomExploration(ExplorationMethod):
             traj.append(obs)
         # print(env.sim.data.qpos)
         # print(env.sim.data.qvel)
-        element = Element(descriptor=traj[-1][:2], trajectory=traj, reward=cum_rew,
+        element = Element(descriptor=traj[-1][:3], trajectory=traj, reward=cum_rew,
                           policy_parameters=x, previous_element=prev_element,
                           sim_state={'qpos': copy(env.sim.data.qpos),
                                      'qvel': copy(env.sim.data.qvel)})

@@ -21,7 +21,10 @@ class Cell():
                 best_traj_length = traj_length
                 best_el = el
         return best_el, best_traj_length
-        
+
+    def get_elements(self):
+        return self._elements
+    
     def get_best_policy_to_cell(self, mode='shortest_traj'):
         if mode == 'shortest_traj':
             return self._shortest_traj()

@@ -2,9 +2,6 @@ from abc import abstractmethod
 
 class Archive():
     def __init__(self, params=None):
-        ## kdt will store either the centroids of the behaviour archive
-        self._centroids_kdt = None
-        self._behaviour_archive_kdt = None
         ## Archive is a dict
         self._archive = dict()
 
@@ -35,3 +32,49 @@ class Archive():
             result: 1 if element1 > element2, -1 if element2 > element1
         """
         raise NotImplementedError
+
+    def visualize(self, mode='3d'):
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        ## Create the grid
+        x_min = y_min = z_min = self._grid_min
+        x_max = y_max = z_max = self._grid_max
+
+        fig = plt.figure()  
+        ax = fig.add_subplot(111, projection='3d')  
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_xlim(x_min,x_max)
+        ax.set_ylim(y_min,y_max)
+        ax.set_zlim(z_min,z_max)
+
+        ticks = [self._grid_min + i*(self._grid_max - self._grid_min)/self._grid_div
+                 for i in range(self._grid_div)]
+        # plt.xticks(ticks)
+        # plt.yticks(ticks)
+        # plt.zticks(ticks)
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+        ax.set_zticks(ticks)
+
+        plt.grid(True,which="both", linestyle='--')
+        
+        plt.title('State Archive', fontsize=8)
+        
+        x = []
+        y = []
+        z = []
+        ## Add the BD data from archive:
+        for key in self._archive.keys():
+            elements = self._archive[key].get_elements()
+            for el in elements:
+                x.append(el.descriptor[0])
+                y.append(el.descriptor[1])
+                z.append(el.descriptor[2])
+        plt.savefig("state_archive_visualization", bbox_inches='tight')
+
+        ax.scatter(x, y, z)  
+        plt.gca().invert_zaxis()        
+        plt.show()

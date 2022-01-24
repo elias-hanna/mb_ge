@@ -62,6 +62,7 @@ class FixedGridArchive(Archive):
                 self._archive[archive_index_str] = cell
             elif self._archive_type == 'element':
                 self._archive[archive_index_str] = element
+
         
 if __name__ == '__main__':
     from archive import Element
@@ -101,7 +102,7 @@ if __name__ == '__main__':
         rew = np.random.uniform()
         traj = [np.random.uniform(low=params['fixed_grid_min'],
                                   high=params['fixed_grid_max'],
-                                  size=2)
+                                  size=3)
                 for _ in range(params['exploration_horizon'])]
         desc = traj[-1]
         el = Element(descriptor=desc, trajectory=traj, reward=rew, policy_parameters=x)

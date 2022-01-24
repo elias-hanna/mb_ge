@@ -2,6 +2,8 @@
 import numpy as np
 from itertools import repeat
 from sklearn.neighbors import KDTree
+import random
+from copy import copy
 
 ## Multiprocessing imports
 from multiprocessing import Pool
@@ -14,6 +16,15 @@ from mb_ge.exploration.exploration_method import ExplorationMethod
 from mb_ge.exploration.random_exploration import RandomExploration
 from mb_ge.controller.nn_controller import NeuralNetworkController
 from mb_ge.utils.element import Element
+
+
+archive_list = []
+
+# archive_add_mode = 'novelty'
+# archive_add_mode = 'random'
+archive_nb_to_add = 6
+nb_nearest_neighbors = 15
+gen = 0
 
 class NoveltySearchExploration(ExplorationMethod):
     def __init__(self, params=None):
@@ -49,104 +60,141 @@ class NoveltySearchExploration(ExplorationMethod):
             selected: selected elements to add to the archive
         """
         pass
+
+    def _eval_element(self, x, gym_env, prev_element):
+        ## Create a copy of the controller
+        controller = self.controller.copy()
+        ## Verify that x and controller parameterization have same size
+        # assert len(x) == len(self.controller.get_parameters())
+        ## Set controller parameters
+        controller.set_parameters(x)
+
+        env = copy(gym_env) ## need to verify this works
+        env.set_state(prev_element.sim_state['qpos'], prev_element.sim_state['qvel'])
+        traj = []
+        obs = prev_element.trajectory[-1]
+        cum_rew = 0
+        ## WARNING: need to get previous obs
+        for _ in range(self.exploration_horizon):
+            action = controller(obs)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            traj.append(obs)
+        element = Element(descriptor=traj[-1][:3], trajectory=traj, reward=cum_rew,
+                          policy_parameters=x, previous_element=prev_element,
+                          sim_state={'qpos': copy(env.sim.data.qpos),
+                                     'qvel': copy(env.sim.data.qvel)})
+        ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
+        return element
     
     def _explore(self, gym_env, prev_element, exploration_horizon):
+        ## Set exploration horizon (here and not in params because it might be dynamic)
+        self.exploration_horizon = exploration_horizon
         ## NS Params
         cxpb = 0
         mutpb = 1
         indpb = 0.1
         eta_m = 15.0
-        pop_size = 100
+        pop_size = 10
         lambda_ = int(2.*pop_size)
 
         ind_size = len(self.controller.get_parameters())
+        nb_gen = 5
 
         min_ = self.policy_param_init_min
         max_ = self.policy_param_init_max
 
         nb_eval = 0
 
+        ## List that keeps archived behaviour descriptors
+        archive_bd_list = []
+        archive_elements_list = []
+        
+        gen = 0
+        population = []
+        gen_bd_list = []
+
+        ## Some DEAP tools
         toolbox = base.Toolbox()
-        
-        toolbox.register("attr_float", lambda : random.uniform(min_, max_))
-        
-        toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_float, n=params["ind_size"])
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        #toolbox.register("mate", tools.cxBlend, alpha=params["alpha"])
-    
-        # Polynomial mutation with eta=15, and p=0.1 as for Leni
+        ## Polynomial mutation with eta=15, and p=0.1 as for Leni
         toolbox.register("mutate", tools.mutPolynomialBounded, eta=eta_m, indpb=indpb,
                          low=min_, up=max_)
 
-        toolbox.register("select", tools.selBest, fit_attr='novelty')
-
-        toolbox.register("evaluate", evaluate)
-
-        population = toolbox.population(n=pop_size)
-        
         pool = Pool(processes=self.nb_thread)
 
-        # Evaluate the individuals with an invalid fitness
-        invalid_ind = [ind for ind in population if not ind.fitness.valid]
-        nb_eval+=len(invalid_ind)
-        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-        # fit is a list of fitness (that is also a list) and behavior descriptor
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fit = fit[0] # fit is an attribute just used to store the fitness value
-            ind.parent_bd=None
-            ind.bd=listify(fit[1])
-            ind.id = generate_uuid()
-            ind.parent_id = None
+        ## Initialize population
+        to_evaluate = []
+        for _ in range(pop_size):
+            ## Create a random policy parametrization 
+            x = np.random.uniform(low=self.policy_param_init_min,
+                                  high=self.policy_param_init_max,
+                                  size=ind_size)
+            to_evaluate += [x]
+        env_map_list = [gym_env for _ in range(self.nb_eval)]
+        ## Evaluate all generated elements on given environment
+        population = pool.starmap(self._eval_element,
+                                  zip(to_evaluate, repeat(gym_env), repeat(prev_element)))
 
-        for ind in population:
-            ind.am_parent=0
+        ## Add random elements to the archive
+        random.shuffle(population)
+        archive_elements_list += population[:archive_nb_to_add]
+        ## Add elements bd list to archive_bd_list
+        archive_bd_list += [el.descriptor for el in population[:archive_nb_to_add]]
         
-        archive=updateNovelty(population,population,None,params)
-
-        isortednov=sorted(range(len(population)), key=lambda k: population[k].novelty, reverse=True)
-        for i,ind in enumerate(population):
-            ind.rank_novelty=isortednov.index(i)
-            ind.dist_to_parent=0
-            ind.fitness.values=ind.fit
-        gen=0    
-        
-        if self.archive_kdt is not None: ## general case
-            # Vary the population
-            for gen in range(1,nb_gen):
-                offspring = algorithms.varOr(population, toolbox, lambda_, cxpb, mutpb)
-                # Evaluate the individuals with an invalid fitness
-                invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-                fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-                nb_eval+=len(invalid_ind)
-
-                for ind, fit in zip(invalid_ind, fitnesses):
-                    ind.fit = fit[0]
-                    ind.fitness.values = fit[0]
-                    ind.parent_bd=ind.bd
-                    ind.parent_id=ind.id
-                    ind.id = generate_uuid()
-                    ind.bd=listify(fit[1])
-                for ind in population:
-                    ind.am_parent=1
-                for ind in offspring:
-                    ind.am_parent=0
-
-                pq=population+offspring
-                archive=updateNovelty(pq,offspring,archive,params, pop_for_novelty_estimation)
-                isortednov=sorted(range(len(pq)), key=lambda k: pq[k].novelty, reverse=True)
+        itr = 0            
+        for i in range(nb_gen):
+            print(f'### Generation {i} of Local NS search around BD:{prev_element.descriptor} ###')
+            ## Variation
+            # generate lambda_*pop_size offspring, to_evaluate contains params !
+            to_evaluate = []
+            for _ in range(lambda_*pop_size):
+                ## Select a random individual from previous population
+                prev_el = random.choice(population)
+                ## Copy params
+                params = copy(prev_el.policy_parameters)
+                ## Mutate copy
+                toolbox.mutate(params)
+                ## Add params to be evaluated
+                to_evaluate += [x]
                 
-                for i,ind in enumerate(pq):
-                    ind.rank_novelty=isortednov.index(i)
-                    if (ind.parent_bd is None):
-                        ind.dist_to_parent=0
-                    else:
-                        ind.dist_to_parent=np.linalg.norm(np.array(ind.bd)-np.array(ind.parent_bd))
-                    ind.fitness.values=ind.fit
-                population[:] = toolbox.select(pq, pop_size)     
+            env_map_list = [gym_env for _ in range(self.nb_eval)]
+            ## Evaluate offsprings on given environment
+            offsprings = pool.starmap(self._eval_element,
+                                      zip(to_evaluate, repeat(gym_env), repeat(prev_element)))
+            ##Update generation bd list
+            gen_bd_list = [el.descriptor for el in offsprings]
+            # np.savez(f"bd_list_{gen}", gen_bd_list)
 
-        else: ## Initialization
-            elements = self._re_procedure(gym_env, prev_element, exploration_horizon)
+            ## Update generation kdt
+            # Get KDT for archive + current pop
+            gen_kdt = KDTree(archive_bd_list+gen_bd_list, leaf_size=30, metric='euclidean')
+            ## Evaluate the offspring
+            if archive_bd_list != []: # General case
+                for el in offsprings:
+                    ## Get k-nearest neighbours to this ind
+                    k_dists, k_indexes = gen_kdt.query([el.descriptor], k=nb_nearest_neighbors)
+                    el.novelty = sum(k_dists[0])/nb_nearest_neighbors
+            else:
+                for el in offsprings:
+                    el.novelty = 0. # Initialization
+    
+            ## Sort offsprings by novelty
+            sorted_offsprings_by_nov = sorted(offsprings, key=lambda el: el.novelty, reverse=True)
+            ## Add to archive
+            itr = 0
+            ## Add most novel elements to the archive
+            archive_elements_list += sorted_offsprings_by_nov[:archive_nb_to_add]
+            ## Add most novel elements bd to the archive of bd (for kdt)
+            archive_bd_list += [el.descriptor for el
+                                in sorted_offsprings_by_nov[:archive_nb_to_add]]
+            ## Sort previous pop + offspring by novelty
+            sorted_pq_by_nov = sorted(population+offsprings,
+                                      key=lambda el: el.novelty, reverse=True)
+            ## Replace pop with most novel individuals from population + offspring
+            population = sorted_pq_by_nov[:pop_size]
+
+            gen += 1
             
         pool.close()
 
-        return elements, self._compute_spent_budget(elements)
+        return archive_elements_list, self._compute_spent_budget(archive_elements_list)
