@@ -73,20 +73,15 @@ class NoveltySearchExploration(ExplorationMethod):
         ## Set controller parameters
         controller.set_parameters(x)
 
-        
-        env = copy(gym_env) ## need to verify this works
-        env.set_state(prev_element.sim_state['qpos'], prev_element.sim_state['qvel'])
         traj = []
         obs = prev_element.trajectory[-1]
         cum_rew = 0
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
             action = controller(obs)
-
-            next_step_pred = model.forward(a, s, dynamics_model)
-            obs, reward, done, info = env.step(action)
-            cum_rew += reward
-            traj.append(obs)
+            next_step_pred = model.forward(action, obs)
+            obs = next_step_pred
+            traj.append(next_step_pred)
         element = Element(descriptor=traj[-1][:3], trajectory=traj, reward=cum_rew,
                           policy_parameters=x, previous_element=prev_element,
                           sim_state={'qpos': copy(env.sim.data.qpos),
@@ -112,6 +107,11 @@ class NoveltySearchExploration(ExplorationMethod):
         max_ = self.policy_param_init_max
 
         nb_eval = 0
+
+        if self._use_model:
+            eval_func = self._eval_element_on_model
+        else:
+            eval_func = self._eval_element
 
         ## List that keeps archived behaviour descriptors
         archive_bd_list = []

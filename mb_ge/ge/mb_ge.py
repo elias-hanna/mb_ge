@@ -5,6 +5,9 @@ from mb_ge.ge.ge import GoExplore
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, selection_method=None,
                  go_method=None, exploration_method=None, state_archive=None):
+        super().__init__(params=params, gym_env=None, selection_method=selection_method,
+                         go_method=go_method, exploration_method=exploration_method,
+                         state_archive=state_archive)
         ## Process run parameters
         self._process_params(params)
         ## Intialize functors (do this in params?)
@@ -34,7 +37,6 @@ class ModelBasedGoExplore(GoExplore):
         init_elem = Element(descriptor=self.gym_env.sim.data.qpos[:3], trajectory=[obs], reward=0.,
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
-        # import pdb; pdb.set_trace()
         self.state_archive.add(init_elem)
         itr = 0
         budget_used = 0
@@ -78,6 +80,16 @@ if __name__ == '__main__':
         'n_hidden_layers': 2,
         'n_neurons_per_hidden': 50
     }
+    dynamics_model_params = \
+    {
+        'obs_dim': 6,
+        'action_dim': 3,
+        'dynamics_model_type': 'prob', # possible values: prob, det
+        'ensemble_size': 4, # only used if dynamics_model_type == prob
+        'layer_size': 500,
+        'batch_size': 512,
+        'learning_rate': 1e-3,
+    }
     params = \
     {
         'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
@@ -95,6 +107,9 @@ if __name__ == '__main__':
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
+
+        'use_model': True,
+        'dynamics_model_params': dynamics_model_params,
     }
 
     ## Framework methods

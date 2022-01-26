@@ -1,5 +1,4 @@
 import numpy as np
-
 from mb_ge.utils.element import Element
 
 class GoExplore():
@@ -95,6 +94,8 @@ if __name__ == '__main__':
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
+
+        'use_model': False,
     }
 
     ## Framework methods
