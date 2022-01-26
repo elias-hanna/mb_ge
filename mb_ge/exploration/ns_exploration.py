@@ -39,28 +39,6 @@ class NoveltySearchExploration(ExplorationMethod):
     def _compute_spent_budget(self, elements):
         return sum([len(el.trajectory) for el in elements])
 
-    def _mutate(self, genotype):
-        """
-        Mutates a genotype and returns it.
-        Args:
-            genotype: genotype to mutate
-        Returns:
-            mutated: mutated genotype to be used for an offspring
-        """
-        pass
-
-    def _select(self, elements, n=6, crit='novelty'):
-        """
-        Selects n elements to add to the archive, based on a given criterion
-        Args:
-            elements: elements to select from
-            n: number of elements to add to archive
-            crit: criterion to use to determine which element to add to the archive
-        Returns:
-            selected: selected elements to add to the archive
-        """
-        pass
-
     def _eval_element(self, x, gym_env, prev_element):
         ## Create a copy of the controller
         controller = self.controller.copy()
@@ -77,6 +55,35 @@ class NoveltySearchExploration(ExplorationMethod):
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
             action = controller(obs)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            traj.append(obs)
+        element = Element(descriptor=traj[-1][:3], trajectory=traj, reward=cum_rew,
+                          policy_parameters=x, previous_element=prev_element,
+                          sim_state={'qpos': copy(env.sim.data.qpos),
+                                     'qvel': copy(env.sim.data.qvel)})
+        ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
+        return element
+
+    def _eval_element_on_model(self, x, model, prev_element):
+        ## Create a copy of the controller
+        controller = self.controller.copy()
+        ## Verify that x and controller parameterization have same size
+        # assert len(x) == len(self.controller.get_parameters())
+        ## Set controller parameters
+        controller.set_parameters(x)
+
+        
+        env = copy(gym_env) ## need to verify this works
+        env.set_state(prev_element.sim_state['qpos'], prev_element.sim_state['qvel'])
+        traj = []
+        obs = prev_element.trajectory[-1]
+        cum_rew = 0
+        ## WARNING: need to get previous obs
+        for _ in range(self.exploration_horizon):
+            action = controller(obs)
+
+            next_step_pred = model.forward(a, s, dynamics_model)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             traj.append(obs)
