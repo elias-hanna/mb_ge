@@ -2,6 +2,10 @@ import numpy as np
 from gym import utils
 from gym.envs.mujoco import mujoco_env
 
+# Path to module
+import os
+import mb_ge
+
 steps_done = 0
 monitor_rate = 1000
 total_rew_seen = 0
@@ -16,7 +20,8 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self.relative_obs = relative_obs
         
         utils.EzPickle.__init__(self)
-        mujoco_env.MujocoEnv.__init__(self, "/home/elias/Documents/thesis/billiard_exps/mb_ge/mb_ge/envs/assets/ball_in_cup_3d.xml", 2)
+        path_to_module = os.path.dirname(mb_ge.__file__)
+        mujoco_env.MujocoEnv.__init__(self, f"{path_to_module}/envs/assets/ball_in_cup_3d.xml", 2)
         self.init_qpos = [0. ,0. ,0.   # initial cup position in cartesian space
                           ,0. ,0. ,0.] # initial ball posiiton in cartesian space
 
