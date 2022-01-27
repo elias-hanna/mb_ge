@@ -19,7 +19,7 @@ class RandomExploration(ExplorationMethod):
         
     def _process_params(self, params):
         super()._process_params(params)
-        
+
     def _eval_element(self, x, gym_env, prev_element):
         ## Create a copy of the controller
         controller = self.controller.copy()
@@ -98,7 +98,13 @@ class RandomExploration(ExplorationMethod):
             to_evaluate += [x]
         env_map_list = [gym_env_or_model for _ in range(self.nb_eval)]
         ## Evaluate all generated policies on given environment
-        elements = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model), repeat(prev_element)))
+        elements = []
+        if eval_on_model:
+            for xx in to_evaluate:
+                elements.append(eval_func(xx, gym_env_or_model, prev_element))
+        else:
+            elements = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
+                                                   repeat(prev_element)))
         
         ## Close the multiprocessing pool
         pool.close()

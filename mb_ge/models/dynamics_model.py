@@ -2,6 +2,7 @@
 from mb_ge.models.deterministic_model import DeterministicDynModel
 from mb_ge.models.probabilistic_ensemble import ProbabilisticEnsemble
 from mb_ge.utils.simple_replay_buffer import SimpleReplayBuffer
+import mb_ge.utils.pytorch_util as ptu
 
 # torch import
 import torch
@@ -88,23 +89,23 @@ class DynamicsModel():
         s_0 = copy.deepcopy(s)
         a_0 = copy.deepcopy(a)
         
-        s_0 = np.tile(s_0,(dynamics_model.ensemble_size, 1))
+        s_0 = np.tile(s_0,(self._dynamics_model.ensemble_size, 1))
         
         s_0 = ptu.from_numpy(s_0)
         a_0 = ptu.from_numpy(a_0)
         
-        a_0 = a_0.repeat(dynamics_model.ensemble_size,1)
+        a_0 = a_0.repeat(self._dynamics_model.ensemble_size,1)
         # if probalistic dynamics model - choose output mean or sample
         if disagr:
-            pred_delta_ns, _ = dynamics_model.sample_with_disagreement(
+            pred_delta_ns, _ = self._dynamics_model.sample_with_disagreement(
                 torch.cat((
-                    dynamics_model._expand_to_ts_form(s_0),
-                    dynamics_model._expand_to_ts_form(a_0)), dim=-1
+                    self._dynamics_model._expand_to_ts_form(s_0),
+                    self._dynamics_model._expand_to_ts_form(a_0)), dim=-1
                 ), disagreement_type="mean" if mean else "var")
             pred_delta_ns = ptu.get_numpy(pred_delta_ns)
         
         else:
-            pred_delta_ns = dynamics_model.output_pred_ts_ensemble(s_0, a_0, mean=mean)
+            pred_delta_ns = self._dynamics_model.output_pred_ts_ensemble(s_0, a_0, mean=mean)
         return pred_delta_ns
 
     def train(self, verbose=True):
@@ -114,7 +115,7 @@ class DynamicsModel():
                                                        max_grad_steps=200000)
         if verbose:
             print("=========================================\nDynamics Model Trainer statistics:")
-            stats = dynamics_model_trainer.get_diagnostics()
+            stats = self._dynamics_model_trainer.get_diagnostics()
             for name, value in zip(stats.keys(), stats.values()):
                 print(name, ": ", value)
             print("=========================================\n")

@@ -71,4 +71,4 @@ class ExplorationMethod():
         raise NotImplementedError
 
     def __call__(self, gym_env, last_obs, exploration_horizon, eval_on_model=False):
-        return self._explore(gym_env, last_obs, exploration_horizon)
+        return self._explore(gym_env, last_obs, exploration_horizon, eval_on_model=eval_on_model)

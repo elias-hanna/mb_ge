@@ -36,7 +36,6 @@ class ModelBasedGoExplore(GoExplore):
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
         self.state_archive.add(init_elem)
-
         
         budget_used = 0
         i_budget_used = 0
