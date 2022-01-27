@@ -59,7 +59,7 @@ class ModelBasedGoExplore(GoExplore):
             ## Train the dynamics model
             self._dynamics_model.add_samples_from_transitions(transitions)
             self._dynamics_model.train()
-            
+            import pdb; pdb.set_trace()
             i_budget_used += i_b_used
             budget_used += b_used
             print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget}')

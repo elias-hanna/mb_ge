@@ -48,7 +48,7 @@ class DynamicsModel():
 
         # initialize replay buffer
         self._replay_buffer = SimpleReplayBuffer(max_replay_buffer_size=1000000,
-                                                 observation_dim=self._batch_size,
+                                                 observation_dim=self._obs_dim,
                                                  action_dim=self._action_dim,
                                                  env_info_sizes=dict(),)
 
@@ -113,6 +113,7 @@ class DynamicsModel():
         self._dynamics_model_trainer.train_from_buffer(self._replay_buffer,
                                                        holdout_pct=0.1,
                                                        max_grad_steps=200000)
+        # import pdb; pdb.set_trace()
         if verbose:
             print("=========================================\nDynamics Model Trainer statistics:")
             stats = self._dynamics_model_trainer.get_diagnostics()
@@ -144,7 +145,7 @@ class DynamicsModel():
         self.add_samples(S, A, NS)
         
     def add_samples(self, S, A, NS):
-        for s, a, ns in zip(S, A):
+        for s, a, ns in zip(S, A, NS):
             self._replay_buffer.add_sample(s, a, 0, 0, ns, {})
             
     # Utils methods

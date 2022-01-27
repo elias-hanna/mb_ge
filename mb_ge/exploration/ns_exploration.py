@@ -83,8 +83,9 @@ class NoveltySearchExploration(ExplorationMethod):
         for _ in range(self.exploration_horizon):
             action = controller(obs)
             next_step_pred = model.forward(action, obs)
-            obs = next_step_pred
-            traj.append(next_step_pred)
+            mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
+            obs = mean_pred
+            traj.append(mean_pred)
             actions.append(action)
         element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,
                           reward=cum_rew, policy_parameters=x, previous_element=prev_element,)

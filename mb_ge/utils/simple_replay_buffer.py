@@ -4,7 +4,6 @@ import numpy as np
 
 from mb_ge.utils.replay_buffer import ReplayBuffer
 
-
 def load_replay_buffer_from_snapshot(new_replay, snapshot, force_terminal_false=False):
     for t in range(len(snapshot['replay_buffer/actions'])):
         sample = dict(env_info=dict())
