@@ -18,6 +18,7 @@ class GoMethod():
             gym_env: Gym environment on which state needs to be restored to el
             el: Cell-State(element) the gym environment must be restored to
         Returns:
+            transitions: observed transitions while going back to the state
             budget_used: budget spent using the go method
         """
         raise NotImplementedError

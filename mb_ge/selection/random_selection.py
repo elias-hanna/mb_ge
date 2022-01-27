@@ -8,6 +8,9 @@ class RandomSelection(SelectionMethod):
         selected_cell = random.choice(list(archive._archive.values()))
         return random.choice(selected_cell._elements)
     
+    def select_element_from_element_list(self, elements):
+        return random.choice(elements)
+    
 if __name__ == '__main__':
     from mb_ge.utils.element import Element
     from mb_ge.archive.fixed_grid_archive import FixedGridArchive

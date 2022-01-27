@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from src.data_management.replay_buffers.replay_buffer import ReplayBuffer
+from mb_ge.utils.replay_buffer import ReplayBuffer
 
 
 def load_replay_buffer_from_snapshot(new_replay, snapshot, force_terminal_false=False):

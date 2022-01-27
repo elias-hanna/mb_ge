@@ -4,7 +4,7 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 
-import src.torch.pytorch_util as ptu
+import mb_ge.utils.pytorch_util as ptu
 
 
 class DeterministicDynModel(nn.Module):

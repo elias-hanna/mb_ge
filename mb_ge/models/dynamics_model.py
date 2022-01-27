@@ -16,7 +16,7 @@ class DynamicsModel():
 
         ## INIT MODEL ##
         if self._dynamics_model_type == "prob":
-            from src.trainers.mbrl.mbrl import MBRLTrainer
+            from mb_ge.models.mbrl import MBRLTrainer
             variant = dict(
                 mbrl_kwargs=dict(
                     ensemble_size=self._ensemble_size,
@@ -36,7 +36,7 @@ class DynamicsModel():
 
         # ensemble somehow cant run in parallel evaluations
         elif dynamics_model_type == "det":
-            from src.trainers.mbrl.mbrl_det import MBRLTrainer
+            from mb_ge.models.mbrl_det import MBRLTrainer
             dynamics_model = DeterministicDynModel(obs_dim=self._obs_dim,
                                                    action_dim=self._action_dim,
                                                    hidden_size=self._layer_size)
@@ -56,33 +56,33 @@ class DynamicsModel():
             if 'obs_dim' in params['dynamics_model_params']:
                 self._obs_dim = params['dynamics_model_params']['obs_dim']
             else:
-                raise Exception('ExplorationMethod _process_params error: obs_dim not in params')
+                raise Exception('DynamicsModel _process_params error: obs_dim not in params')
             if 'action_dim' in params['dynamics_model_params']:
                 self._action_dim = params['dynamics_model_params']['action_dim']
             else:
-                raise Exception('ExplorationMethod _process_params error: action_dim not in params')
+                raise Exception('DynamicsModel _process_params error: action_dim not in params')
             if 'dynamics_model_type' in params['dynamics_model_params']:
                 self._dynamics_model_type = params['dynamics_model_params']['dynamics_model_type']
             else:
-                raise Exception('ExplorationMethod _process_params error: dynamics_model_type not in params')
+                raise Exception('DynamicsModel _process_params error: dynamics_model_type not in params')
             if 'ensemble_size' in params['dynamics_model_params']:
                 self._ensemble_size = params['dynamics_model_params']['ensemble_size']
             else:
-                raise Exception('ExplorationMethod _process_params error: ensemble_size not in params')
+                raise Exception('DynamicsModel _process_params error: ensemble_size not in params')
             if 'layer_size' in params['dynamics_model_params']:
                 self._layer_size = params['dynamics_model_params']['layer_size']
             else:
-                raise Exception('ExplorationMethod _process_params error: layer_size not in params')
+                raise Exception('DynamicsModel _process_params error: layer_size not in params')
             if 'batch_size' in params['dynamics_model_params']:
                 self._batch_size = params['dynamics_model_params']['batch_size']
             else:
-                raise Exception('ExplorationMethod _process_params error: batch_size not in params')
+                raise Exception('DynamicsModel _process_params error: batch_size not in params')
             if 'learning_rate' in params['dynamics_model_params']:
                 self._learning_rate = params['dynamics_model_params']['learning_rate']
             else:
-                raise Exception('ExplorationMethod _process_params error: learning_rate not in params')
+                raise Exception('DynamicsModel _process_params error: learning_rate not in params')
         else:
-            raise Exception('ExplorationMethod _process_params error: dynamics_model_params not in params')
+            raise Exception('DynamicsModel _process_params error: dynamics_model_params not in params')
 
     def forward(self, a, s, mean=True, disagr=True):
         s_0 = copy.deepcopy(s)
@@ -107,9 +107,9 @@ class DynamicsModel():
             pred_delta_ns = dynamics_model.output_pred_ts_ensemble(s_0, a_0, mean=mean)
         return pred_delta_ns
 
-    def train(self, replay_buffer, verbose=True):
+    def train(self, verbose=True):
         torch.set_num_threads(24)
-        self._dynamics_model_trainer.train_from_buffer(replay_buffer,
+        self._dynamics_model_trainer.train_from_buffer(self._replay_buffer,
                                                        holdout_pct=0.1,
                                                        max_grad_steps=200000)
         if verbose:
@@ -118,7 +118,30 @@ class DynamicsModel():
             for name, value in zip(stats.keys(), stats.values()):
                 print(name, ": ", value)
             print("=========================================\n")
-                
+
+    def add_samples_from_elements(self, elements):
+        A = []
+        S = []
+        NS = []
+        for el in elements:
+            prev_state = el.prev_element.trajectory[-1]
+            for a, s in zip(el.actions, el.trajectory):
+                ns = s - prev_state
+                A.append(copy.copy(a))
+                S.append(copy.copy(s))
+                NS.append(copy.copy(ns))
+        self.add_samples(S, A, NS)
+
+    def add_samples_from_transitions(self, transitions):
+        A = []
+        S = []
+        NS = []
+        for i in range(len(transitions) - 1):
+            A.append(copy.copy(transitions[i][0]))
+            S.append(copy.copy(transitions[i][1]))
+            NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
+        self.add_samples(S, A, NS)
+        
     def add_samples(self, S, A, NS):
         for s, a, ns in zip(S, A):
             self._replay_buffer.add_sample(s, a, 0, 0, ns, {})

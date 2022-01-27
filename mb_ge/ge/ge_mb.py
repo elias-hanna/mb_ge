@@ -1,27 +1,16 @@
 import numpy as np
 from mb_ge.utils.element import Element
 from mb_ge.ge.ge import GoExplore
+import copy
 
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, selection_method=None,
-                 go_method=None, exploration_method=None, state_archive=None):
-        super().__init__(params=params, gym_env=None, selection_method=selection_method,
+                 go_method=None, exploration_method=None, state_archive=None, dynamics_model=None):
+        super().__init__(params=params, gym_env=gym_env, selection_method=selection_method,
                          go_method=go_method, exploration_method=exploration_method,
                          state_archive=state_archive)
-        ## Process run parameters
-        self._process_params(params)
-        ## Intialize functors (do this in params?)
-        self._selection_method = selection_method()
-        self._go_method = go_method(params=params)
-        self._exploration_method = exploration_method(params=params)
-        ## Intialize state_archive
-        self.state_archive = state_archive(params)
-        self.gym_env = gym_env ## needs to be an already initialized env
-        ## Transition Dataset initialization (used to train Dynamics Model)
-        self.action_space_dim = self.gym_env.action_space.shape[0]
-        self.observation_space_dim = self.gym_env.observation_space.shape[0]
-        self.observed_transitions = None # init to None so it errors out if not properly initialized
-
+        self._dynamics_model = dynamics_model(params=params)
+        
     def _process_params(self, params):
         if 'budget' in params:
             self.budget = params['budget']
@@ -29,7 +18,16 @@ class ModelBasedGoExplore(GoExplore):
             self.h_exploration = params['exploration_horizon']
         if 'controller_type' in params:
             self.controller_type = params['controller_type']
-            
+        if 'use_model' not in params:
+            raise Exception('ModelBasedGoExplore _process_params error: use_model not in params')
+
+    def _correct_el(self, el, transitions):
+        trajectory = []
+        for t in transitions:
+            trajectory.append(copy.copy(t[1]))
+        el.descriptor = trajectory[-1]
+        el.trajectory = trajectory[-self.h_exploration:]
+        
     def _exploration_phase(self):
         ## reset gym environment
         obs = self.gym_env.reset()
@@ -38,25 +36,35 @@ class ModelBasedGoExplore(GoExplore):
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
         self.state_archive.add(init_elem)
-        itr = 0
+
+        
         budget_used = 0
+        i_budget_used = 0
         done = False
-        while itr < self.budget and not done:
+        while budget_used < self.budget and not done:
             obs = self.gym_env.reset()
+
             ## Select a state to return from the archive
             el = self._selection_method.select_element_from_cell_archive(self.state_archive)
-            # import pdb; pdb.set_trace()
+            ## Go to and Explore in imagination from the selected state
+            i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
+                                                            self.h_exploration, eval_on_model=True)
+            ## Select a state to go to from states found in imagination
+            sel_i_el = self._selection_method.select_element_from_element_list(i_elements)
             ## Go back to the selected state
-            budget_used += self._go_method.go(self.gym_env, el)
-            ## Explore from the selected state
-            elements, b_used = self._exploration_method(self.gym_env, el, self.h_exploration)
-            budget_used += b_used
+            transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
+            ## Correct sel_i_el to have the right trajectory
+            self._correct_el(sel_i_el, transitions)
             ## Update archive and other datasets
-            for elem in elements:
-                self.state_archive.add(elem)
-            itr = budget_used
-            # print(itr, ' | ', self.budget)
-            print(budget_used, ' | ', self.budget)
+            self.state_archive.add(sel_i_el)
+            ## Train the dynamics model
+            self._dynamics_model.add_samples_from_transitions(transitions)
+            self._dynamics_model.train()
+            
+            i_budget_used += i_b_used
+            budget_used += b_used
+            print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget}')
+
             
     def __call__(self):
         pass
@@ -67,7 +75,7 @@ if __name__ == '__main__':
     from mb_ge.exploration.random_exploration import RandomExploration
     from mb_ge.exploration.ns_exploration import NoveltySearchExploration
     from mb_ge.archive.fixed_grid_archive import FixedGridArchive
-
+    from mb_ge.models.dynamics_model import DynamicsModel
     from mb_ge.controller.nn_controller import NeuralNetworkController
 
     import gym
@@ -123,13 +131,13 @@ if __name__ == '__main__':
     exploration_method = RandomExploration
 
     state_archive_type = FixedGridArchive
+
+    dynamics_model = DynamicsModel
     
-    ge = GoExplore(params=params, gym_env=env, selection_method=selection_method,
-                   go_method=go_method, exploration_method=exploration_method,
-                   state_archive=state_archive_type)
+    ge = ModelBasedGoExplore(params=params, gym_env=env, selection_method=selection_method,
+                             go_method=go_method, exploration_method=exploration_method,
+                             state_archive=state_archive_type, dynamics_model=dynamics_model)
 
     ge._exploration_phase()
 
     ge.state_archive.visualize()
-
-    # import pdb; pdb.set_trace()

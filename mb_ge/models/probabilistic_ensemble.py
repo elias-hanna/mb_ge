@@ -4,8 +4,8 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 
-import src.torch.pytorch_util as ptu
-from src.models.networks import ParallelizedEnsemble
+import mb_ge.utils.pytorch_util as ptu
+from mb_ge.models.networks import ParallelizedEnsemble
 
 def identity(x):
     return x

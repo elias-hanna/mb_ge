@@ -9,6 +9,7 @@ class ExecutePolicyGo(GoMethod):
         policies_to_chain = []
         len_under_policy = []
         budget_used = 0
+        transitions = []
         policies_to_chain.insert(0, el.policy_parameters)
         prev_el = el.previous_element
         ## WARNING: might have to copy values
@@ -24,6 +25,8 @@ class ExecutePolicyGo(GoMethod):
             self.controller.set_parameters(policy_params)
             for _ in range(h):
                 action = self.controller(obs)
+                transitions.append((action, obs))
                 obs, reward, done, info = gym_env.step(action)
                 budget_used += 1
-        return budget_used
+        transitions.append((None, obs))
+        return transitions, budget_used

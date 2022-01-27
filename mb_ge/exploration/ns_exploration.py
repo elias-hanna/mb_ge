@@ -50,6 +50,7 @@ class NoveltySearchExploration(ExplorationMethod):
         env = copy(gym_env) ## need to verify this works
         env.set_state(prev_element.sim_state['qpos'], prev_element.sim_state['qvel'])
         traj = []
+        actions = []
         obs = prev_element.trajectory[-1]
         cum_rew = 0
         ## WARNING: need to get previous obs
@@ -58,8 +59,9 @@ class NoveltySearchExploration(ExplorationMethod):
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             traj.append(obs)
-        element = Element(descriptor=traj[-1][:3], trajectory=traj, reward=cum_rew,
-                          policy_parameters=x, previous_element=prev_element,
+            actions.append(action)
+        element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,
+                          reward=cum_rew, policy_parameters=x, previous_element=prev_element,
                           sim_state={'qpos': copy(env.sim.data.qpos),
                                      'qvel': copy(env.sim.data.qvel)})
         ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
@@ -74,6 +76,7 @@ class NoveltySearchExploration(ExplorationMethod):
         controller.set_parameters(x)
 
         traj = []
+        actions = []
         obs = prev_element.trajectory[-1]
         cum_rew = 0
         ## WARNING: need to get previous obs
@@ -82,14 +85,13 @@ class NoveltySearchExploration(ExplorationMethod):
             next_step_pred = model.forward(action, obs)
             obs = next_step_pred
             traj.append(next_step_pred)
-        element = Element(descriptor=traj[-1][:3], trajectory=traj, reward=cum_rew,
-                          policy_parameters=x, previous_element=prev_element,
-                          sim_state={'qpos': copy(env.sim.data.qpos),
-                                     'qvel': copy(env.sim.data.qvel)})
+            actions.append(action)
+        element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,
+                          reward=cum_rew, policy_parameters=x, previous_element=prev_element,)
         ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
         return element
     
-    def _explore(self, gym_env, prev_element, exploration_horizon):
+    def _explore(self, gym_env_or_model, prev_element, exploration_horizon, eval_on_model=False):
         ## Set exploration horizon (here and not in params because it might be dynamic)
         self.exploration_horizon = exploration_horizon
         ## NS Params
@@ -108,7 +110,7 @@ class NoveltySearchExploration(ExplorationMethod):
 
         nb_eval = 0
 
-        if self._use_model:
+        if eval_on_model:
             eval_func = self._eval_element_on_model
         else:
             eval_func = self._eval_element
@@ -137,11 +139,10 @@ class NoveltySearchExploration(ExplorationMethod):
                                   high=self.policy_param_init_max,
                                   size=ind_size)
             to_evaluate += [x]
-        env_map_list = [gym_env for _ in range(self.nb_eval)]
+        env_map_list = [gym_env_or_model for _ in range(self.nb_eval)]
         ## Evaluate all generated elements on given environment
-        population = pool.starmap(self._eval_element,
-                                  zip(to_evaluate, repeat(gym_env), repeat(prev_element)))
-
+        population = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
+                                                 repeat(prev_element)))
         ## Add random elements to the archive
         random.shuffle(population)
         archive_elements_list += population[:archive_nb_to_add]
@@ -164,10 +165,10 @@ class NoveltySearchExploration(ExplorationMethod):
                 ## Add params to be evaluated
                 to_evaluate += [x]
                 
-            env_map_list = [gym_env for _ in range(self.nb_eval)]
+            env_map_list = [gym_env_or_model for _ in range(self.nb_eval)]
             ## Evaluate offsprings on given environment
-            offsprings = pool.starmap(self._eval_element,
-                                      zip(to_evaluate, repeat(gym_env), repeat(prev_element)))
+            offsprings = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
+                                                     repeat(prev_element)))
             ##Update generation bd list
             gen_bd_list = [el.descriptor for el in offsprings]
             # np.savez(f"bd_list_{gen}", gen_bd_list)

@@ -57,7 +57,7 @@ class ExplorationMethod():
 
     @abstractmethod
     # def _explore(self, gym_env, last_obs, exploration_horizon):
-    def _explore(self, gym_env, prev_element, exploration_horizon):
+    def _explore(self, gym_env, prev_element, exploration_horizon, eval_on_model=False):
         """
         Args:
             gym_env: Environment on which to perform exploration, already in the state to explore from
@@ -70,5 +70,5 @@ class ExplorationMethod():
         """
         raise NotImplementedError
 
-    def __call__(self, gym_env, last_obs, exploration_horizon):
+    def __call__(self, gym_env, last_obs, exploration_horizon, eval_on_model=False):
         return self._explore(gym_env, last_obs, exploration_horizon)
