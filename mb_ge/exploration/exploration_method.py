@@ -49,11 +49,6 @@ class ExplorationMethod():
             self.controller = params['controller_type'](params=params)
         else:
             raise Exception('ExplorationMethod _process_params error: controller_type not in params')
-        if 'use_model' in params:
-            ## Associate an instance of controller_type with given params
-            self._use_model = params['use_model']
-        else:
-            raise Exception('ExplorationMethod _process_params error: use_model not in params')
 
     @abstractmethod
     # def _explore(self, gym_env, last_obs, exploration_horizon):

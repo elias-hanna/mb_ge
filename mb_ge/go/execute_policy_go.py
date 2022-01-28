@@ -11,6 +11,7 @@ class ExecutePolicyGo(GoMethod):
         budget_used = 0
         transitions = []
         policies_to_chain.insert(0, el.policy_parameters)
+        len_under_policy.insert(0, len(el.trajectory))
         prev_el = el.previous_element
         ## WARNING: might have to copy values
         while prev_el != None:
@@ -18,7 +19,6 @@ class ExecutePolicyGo(GoMethod):
                 policies_to_chain.insert(0, prev_el.policy_parameters)
                 len_under_policy.insert(0, len(prev_el.trajectory))
             prev_el = prev_el.previous_element
-
         ## Replay policies from initial state to el goal state
         obs = gym_env._get_obs()
         for policy_params, h in zip(policies_to_chain, len_under_policy):

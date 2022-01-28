@@ -94,8 +94,6 @@ if __name__ == '__main__':
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
-
-        'use_model': False,
     }
 
     ## Framework methods

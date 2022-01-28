@@ -12,15 +12,10 @@ class ModelBasedGoExplore(GoExplore):
         self._dynamics_model = dynamics_model(params=params)
         
     def _process_params(self, params):
-        if 'budget' in params:
-            self.budget = params['budget']
-        if 'exploration_horizon' in params:
-            self.h_exploration = params['exploration_horizon']
-        if 'controller_type' in params:
-            self.controller_type = params['controller_type']
-        if 'use_model' not in params:
-            raise Exception('ModelBasedGoExplore _process_params error: use_model not in params')
-
+        if 'model_update_rate' not in params:
+            self.model_update_rate = params['model_update_rate']
+        else:
+            self.model_update_rate = 10
     def _correct_el(self, el, transitions):
         trajectory = []
         for t in transitions:
@@ -40,6 +35,7 @@ class ModelBasedGoExplore(GoExplore):
         budget_used = 0
         i_budget_used = 0
         done = False
+        itr = 0
         while budget_used < self.budget and not done:
             obs = self.gym_env.reset()
 
@@ -56,14 +52,15 @@ class ModelBasedGoExplore(GoExplore):
             self._correct_el(sel_i_el, transitions)
             ## Update archive and other datasets
             self.state_archive.add(sel_i_el)
-            ## Train the dynamics model
-            self._dynamics_model.add_samples_from_transitions(transitions)
-            self._dynamics_model.train()
-            import pdb; pdb.set_trace()
+            ## Update used budget
             i_budget_used += i_b_used
             budget_used += b_used
+            itr += 1
             print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget}')
-
+            ## Train the dynamics model
+            self._dynamics_model.add_samples_from_transitions(transitions)
+            if itr%self.model_update_rate== 0:
+                self._dynamics_model.train()
             
     def __call__(self):
         pass
@@ -102,7 +99,7 @@ if __name__ == '__main__':
         'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
         'controller_params': controller_params,
         
-        'budget': 100000,
+        'budget': 10000,
         'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
@@ -115,7 +112,7 @@ if __name__ == '__main__':
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
 
-        'use_model': True,
+        'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
     }
 
