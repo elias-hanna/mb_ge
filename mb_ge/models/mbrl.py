@@ -51,12 +51,16 @@ class MBRLTrainer(TorchTrainer):
 
         return optimizer
 
-    def train_from_buffer(self, replay_buffer, holdout_pct=0.2, max_grad_steps=1000, epochs_since_last_update=5):
+    def train_from_buffer(self, replay_buffer, holdout_pct=0.2, max_grad_steps=1000, epochs_since_last_update=5, use_unique_transitions=False):
         self._n_train_steps_total += 1
         if self._n_train_steps_total % self.train_call_freq > 0 and self._n_train_steps_total > 1:
             return
 
-        data = replay_buffer.get_transitions()
+        data_tmp = replay_buffer.get_transitions()
+        if use_unique_transitions:
+            data = np.unique(data_tmp, axis=0)
+        else:
+            data = data_tmp
         #x = data[:,:self.obs_dim + self.action_dim]  # inputs  s, a
         #y = data[:,self.obs_dim + self.action_dim:]  # predict r, d, ns
 

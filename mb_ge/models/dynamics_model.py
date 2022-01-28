@@ -109,16 +109,22 @@ class DynamicsModel():
         return pred_delta_ns
 
     def train(self, verbose=True):
+        if verbose:
+            import time
+            start = time.time()
         torch.set_num_threads(24)
         self._dynamics_model_trainer.train_from_buffer(self._replay_buffer,
                                                        holdout_pct=0.1,
-                                                       max_grad_steps=200000)
-        # import pdb; pdb.set_trace()
+                                                       max_grad_steps=100000,
+                                                       use_unique_transitions=True)
+        self._dynamics_model_trainer.end_epoch(0) ## weird idk why they did it that way
         if verbose:
             print("=========================================\nDynamics Model Trainer statistics:")
             stats = self._dynamics_model_trainer.get_diagnostics()
             for name, value in zip(stats.keys(), stats.values()):
                 print(name, ": ", value)
+            model_train_time = time.time() - start
+            print(f"Model train time: {model_train_time} seconds")
             print("=========================================\n")
 
     def add_samples_from_elements(self, elements):
