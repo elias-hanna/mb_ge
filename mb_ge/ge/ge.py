@@ -25,6 +25,10 @@ class GoExplore():
             self.h_exploration = params['exploration_horizon']
         if 'controller_type' in params:
             self.controller_type = params['controller_type']
+        if 'dump_rate' in params:
+            self.dump_rate = params['dump_rate']
+        else:
+            self.dump_rate = 100
             
     def _exploration_phase(self):
         ## reset gym environment

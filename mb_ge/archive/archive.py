@@ -33,7 +33,7 @@ class Archive():
         """
         raise NotImplementedError
 
-    def visualize(self, mode='3d'):
+    def visualize(self, curr_budget, show=False, mode='3d'):
         import matplotlib.pyplot as plt
         import numpy as np
 
@@ -61,7 +61,7 @@ class Archive():
 
         plt.grid(True,which="both", linestyle='--')
         
-        plt.title('State Archive', fontsize=8)
+        plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
         
         x = []
         y = []
@@ -73,8 +73,9 @@ class Archive():
                 x.append(el.descriptor[0])
                 y.append(el.descriptor[1])
                 z.append(el.descriptor[2])
-        plt.savefig("state_archive_visualization", bbox_inches='tight')
 
         ax.scatter(x, y, z)  
-        plt.gca().invert_zaxis()        
-        plt.show()
+        plt.gca().invert_zaxis()
+        plt.savefig(f"state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+        if show:
+            plt.show()

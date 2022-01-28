@@ -13,7 +13,7 @@ class ModelBasedGoExplore(GoExplore):
         
     def _process_params(self, params):
         super()._process_params(params)
-        if 'model_update_rate' not in params:
+        if 'model_update_rate' in params:
             self.model_update_rate = params['model_update_rate']
         else:
             self.model_update_rate = 10
@@ -60,8 +60,11 @@ class ModelBasedGoExplore(GoExplore):
             print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget}')
             ## Train the dynamics model
             self._dynamics_model.add_samples_from_transitions(transitions)
-            if itr%self.model_update_rate== 0:
+            if itr%self.model_update_rate == 0:
                 self._dynamics_model.train()
+            if itr%self.dump_rate == 0:
+                ge.state_archive.visualize(params['budget'])
+
             
     def __call__(self):
         pass
@@ -100,7 +103,7 @@ if __name__ == '__main__':
         'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
         'controller_params': controller_params,
         
-        'budget': 1000000,
+        'budget': 100000,
         'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
@@ -115,6 +118,8 @@ if __name__ == '__main__':
 
         'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
+
+        'dump_rate': 50,
     }
 
     ## Framework methods
@@ -137,4 +142,4 @@ if __name__ == '__main__':
 
     ge._exploration_phase()
 
-    ge.state_archive.visualize()
+    ge.state_archive.visualize(params['budget'], show=True)
