@@ -12,6 +12,7 @@ class ModelBasedGoExplore(GoExplore):
         self._dynamics_model = dynamics_model(params=params)
         
     def _process_params(self, params):
+        super()._process_params(params)
         if 'model_update_rate' not in params:
             self.model_update_rate = params['model_update_rate']
         else:
@@ -99,7 +100,7 @@ if __name__ == '__main__':
         'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
         'controller_params': controller_params,
         
-        'budget': 10000,
+        'budget': 1000000,
         'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,

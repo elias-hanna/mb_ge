@@ -21,6 +21,10 @@ class ExecutePolicyGo(GoMethod):
             prev_el = prev_el.previous_element
         ## Replay policies from initial state to el goal state
         obs = gym_env._get_obs()
+        ## Check if el is init elem
+        if el.policy_parameters is None:
+            transitions.append((None, obs))
+            return transitions, budget_used
         for policy_params, h in zip(policies_to_chain, len_under_policy):
             self.controller.set_parameters(policy_params)
             for _ in range(h):

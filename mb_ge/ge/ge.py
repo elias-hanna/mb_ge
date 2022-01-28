@@ -38,22 +38,22 @@ class GoExplore():
         itr = 0
         budget_used = 0
         done = False
-        while itr < self.budget and not done:
+        while budget_used < self.budget and not done:
             obs = self.gym_env.reset()
             ## Select a state to return from the archive
             el = self._selection_method.select_element_from_cell_archive(self.state_archive)
-            # import pdb; pdb.set_trace()
             ## Go back to the selected state
-            budget_used += self._go_method.go(self.gym_env, el)
+            _, b_used = self._go_method.go(self.gym_env, el)
+            budget_used += b_used
             ## Explore from the selected state
             elements, b_used = self._exploration_method(self.gym_env, el, self.h_exploration)
-            budget_used += b_used
             ## Update archive and other datasets
             for elem in elements:
                 self.state_archive.add(elem)
-            itr = budget_used
-            # print(itr, ' | ', self.budget)
-            print(budget_used, ' | ', self.budget)
+            ## Update used budget
+            budget_used += b_used
+            itr += 1
+            print(f'b_used: {budget_used} | total_b: {self.budget}')
             
     def __call__(self):
         pass
