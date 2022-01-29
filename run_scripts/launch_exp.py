@@ -49,7 +49,7 @@ if __name__ == '__main__':
         'archive_type': 'cell',
         'fixed_grid_min': -0.5,
         'fixed_grid_max': 0.5,
-        'fixed_grid_div': 5,
+        'fixed_grid_div': 10,
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,

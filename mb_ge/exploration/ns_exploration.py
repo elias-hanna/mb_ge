@@ -105,7 +105,7 @@ class NoveltySearchExploration(ExplorationMethod):
         lambda_ = int(2.*pop_size)
 
         ind_size = len(self.controller.get_parameters())
-        nb_gen = 5
+        nb_gen = 50
 
         min_ = self.policy_param_init_min
         max_ = self.policy_param_init_max
