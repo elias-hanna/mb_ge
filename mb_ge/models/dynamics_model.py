@@ -97,16 +97,16 @@ class DynamicsModel():
         a_0 = a_0.repeat(self._dynamics_model.ensemble_size,1)
         # if probalistic dynamics model - choose output mean or sample
         if disagr:
-            pred_delta_ns, _ = self._dynamics_model.sample_with_disagreement(
+            pred_delta_ns, disagreement = self._dynamics_model.sample_with_disagreement(
                 torch.cat((
                     self._dynamics_model._expand_to_ts_form(s_0),
                     self._dynamics_model._expand_to_ts_form(a_0)), dim=-1
                 ), disagreement_type="mean" if mean else "var")
             pred_delta_ns = ptu.get_numpy(pred_delta_ns)
-        
+            return pred_delta_ns, disagreement
         else:
             pred_delta_ns = self._dynamics_model.output_pred_ts_ensemble(s_0, a_0, mean=mean)
-        return pred_delta_ns
+        return pred_delta_ns, 0
 
     def train(self, verbose=True):
         if verbose:

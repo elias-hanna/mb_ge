@@ -8,7 +8,7 @@ class SelectionMethod():
         pass
     
     @abstractmethod
-    def _select_cell(self, archive):
+    def select_element_from_cell_archive(self, archive):
         """
         Args: 
             archive: Archive to draw an cell (key) from. Must be of class Archive
@@ -19,15 +19,12 @@ class SelectionMethod():
         raise NotImplementedError
 
     @abstractmethod
-    def select_element(self, archive):
+    def select_element_from_element_list(self, elements):
         """
         Args: 
-            archive: Archive to draw an Element (value) from. Must be of class Archive
+            elements: Archive to draw an Element (value) from. Must be of class Archive
         
         Returns: 
             element: Element that has been drawn from archive
         """
         raise NotImplementedError
-        
-    def __call__(self, archive):
-        return self._select_cell(archive)

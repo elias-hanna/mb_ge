@@ -21,7 +21,7 @@ class ModelBasedGoExplore(GoExplore):
         trajectory = []
         for t in transitions:
             trajectory.append(copy.copy(t[1]))
-        el.descriptor = trajectory[-1]
+        el.descriptor = trajectory[-1][:3]
         el.trajectory = trajectory[-self.h_exploration:]
         
     def _exploration_phase(self):
@@ -39,9 +39,9 @@ class ModelBasedGoExplore(GoExplore):
         itr = 0
         while budget_used < self.budget and not done:
             obs = self.gym_env.reset()
-
             ## Select a state to return from the archive
             el = self._selection_method.select_element_from_cell_archive(self.state_archive)
+            # import pdb; pdb.set_trace()
             ## Go to and Explore in imagination from the selected state
             i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
                                                             self.h_exploration, eval_on_model=True)
@@ -64,13 +64,14 @@ class ModelBasedGoExplore(GoExplore):
                 self._dynamics_model.train()
             if itr%self.dump_rate == 0:
                 ge.state_archive.visualize(params['budget'])
-
             
     def __call__(self):
         pass
 
 if __name__ == '__main__':
     from mb_ge.selection.random_selection import RandomSelection
+    from mb_ge.selection.mean_disagreement_selection import MeanDisagreementSelection
+    from mb_ge.selection.max_disagreement_selection import MaxDisagreementSelection
     from mb_ge.go.execute_policy_go import ExecutePolicyGo
     from mb_ge.exploration.random_exploration import RandomExploration
     from mb_ge.exploration.ns_exploration import NoveltySearchExploration
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     }
     params = \
     {
-        'controller_type': NeuralNetworkController, ## WARNING THIS NEED TO BE A CONTROLLER CLASS
+        'controller_type': NeuralNetworkController,
         'controller_params': controller_params,
         
         'budget': 100000,
@@ -125,7 +126,9 @@ if __name__ == '__main__':
     ## Framework methods
     env = gym.make('BallInCup3d-v0')
 
-    selection_method = RandomSelection
+    # selection_method = RandomSelection
+    selection_method = MeanDisagreementSelection
+    # selection_method = MaxDisagreementSelection
 
     go_method = ExecutePolicyGo
 

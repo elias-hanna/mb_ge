@@ -79,15 +79,19 @@ class NoveltySearchExploration(ExplorationMethod):
         actions = []
         obs = prev_element.trajectory[-1]
         cum_rew = 0
+        disagreements = []
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
             action = controller(obs)
-            next_step_pred = model.forward(action, obs)
+            next_step_pred, disagreement = model.forward(action, obs, mean=False, disagr=True)
+            ## Compute mean prediction from model samples
             mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
             obs = mean_pred
             traj.append(mean_pred)
+            disagreements.append(disagreement)
             actions.append(action)
         element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,
+                          disagreement = disagreements,
                           reward=cum_rew, policy_parameters=x, previous_element=prev_element,)
         ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
         return element

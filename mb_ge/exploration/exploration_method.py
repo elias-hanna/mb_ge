@@ -50,6 +50,9 @@ class ExplorationMethod():
         else:
             raise Exception('ExplorationMethod _process_params error: controller_type not in params')
 
+    def _compute_spent_budget(self, elements):
+        return sum([len(el.trajectory) for el in elements])
+    
     @abstractmethod
     # def _explore(self, gym_env, last_obs, exploration_horizon):
     def _explore(self, gym_env, prev_element, exploration_horizon, eval_on_model=False):
