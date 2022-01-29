@@ -63,7 +63,14 @@ class ModelBasedGoExplore(GoExplore):
             if itr%self.model_update_rate == 0:
                 self._dynamics_model.train()
             if itr%self.dump_rate == 0:
-                ge.state_archive.visualize(budget_used)
+                if itr%self.dump_rate == 0:
+                curr_dir = os.getcwd()
+                path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
+                os.makedirs(path_to_dir_to_create)
+                ge.state_archive.visualize(budget_used, itr=itr)
+                for key in self.state_archive._archive.keys():
+                    np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
+                            self.state_archive._archive[key]._elements)
             
     def __call__(self):
         pass
@@ -127,6 +134,7 @@ if __name__ == '__main__':
 
         'dump_rate': 50,
     }
+    
     args = parser.parse_args()
 
     selection_method = RandomSelection
@@ -144,7 +152,6 @@ if __name__ == '__main__':
             exploration_method = RandomExploration
         if args.exploration == 'ns':
             exploration_method = NoveltySearchExploration
-
     
     ## Framework methods
     env = gym.make('BallInCup3d-v0')

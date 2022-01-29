@@ -33,7 +33,7 @@ class Archive():
         """
         raise NotImplementedError
 
-    def visualize(self, curr_budget, show=False, mode='3d'):
+    def visualize(self, curr_budget, show=False, mode='3d', itr=0):
         import matplotlib.pyplot as plt
         import numpy as np
 
@@ -76,6 +76,6 @@ class Archive():
 
         ax.scatter(x, y, z)  
         plt.gca().invert_zaxis()
-        plt.savefig(f"state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+        plt.savefig(f"results_{itr}/state_archive_at_{curr_budget}_eval", bbox_inches='tight')
         if show:
             plt.show()

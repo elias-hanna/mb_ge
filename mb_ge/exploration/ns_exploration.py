@@ -36,9 +36,6 @@ class NoveltySearchExploration(ExplorationMethod):
     def _process_params(self, params):
         super()._process_params(params)
 
-    def _compute_spent_budget(self, elements):
-        return sum([len(el.trajectory) for el in elements])
-
     def _eval_element(self, x, gym_env, prev_element):
         ## Create a copy of the controller
         controller = self.controller.copy()
@@ -146,8 +143,13 @@ class NoveltySearchExploration(ExplorationMethod):
             to_evaluate += [x]
         env_map_list = [gym_env_or_model for _ in range(self.nb_eval)]
         ## Evaluate all generated elements on given environment
-        population = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
-                                                 repeat(prev_element)))
+        population = []
+        if eval_on_model:
+            for xx in to_evaluate:
+                population.append(eval_func(xx, gym_env_or_model, prev_element))
+        else:
+            population = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
+                                                     repeat(prev_element)))
         ## Add random elements to the archive
         random.shuffle(population)
         archive_elements_list += population[:archive_nb_to_add]
@@ -172,8 +174,13 @@ class NoveltySearchExploration(ExplorationMethod):
                 
             env_map_list = [gym_env_or_model for _ in range(self.nb_eval)]
             ## Evaluate offsprings on given environment
-            offsprings = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
-                                                     repeat(prev_element)))
+            offsprings = []
+            if eval_on_model:
+                for xx in to_evaluate:
+                    offsprings.append(eval_func(xx, gym_env_or_model, prev_element))
+            else:
+                offsprings = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
+                                                   repeat(prev_element)))
             ##Update generation bd list
             gen_bd_list = [el.descriptor for el in offsprings]
             # np.savez(f"bd_list_{gen}", gen_bd_list)

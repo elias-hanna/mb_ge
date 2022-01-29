@@ -1,5 +1,6 @@
 import numpy as np
 from mb_ge.utils.element import Element
+import os
 
 class GoExplore():
     def __init__(self, params=None, gym_env=None, selection_method=None,
@@ -34,7 +35,7 @@ class GoExplore():
         ## reset gym environment
         obs = self.gym_env.reset()
         ## add first state to state_archive
-        init_elem = Element(descriptor=self.gym_env.sim.data.qpos[:3], trajectory=[obs], reward=0.,
+        init_elem = Element(descriptor=obs[:3], trajectory=[obs], reward=0.,
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
         # import pdb; pdb.set_trace()
@@ -58,7 +59,15 @@ class GoExplore():
             budget_used += b_used
             itr += 1
             print(f'b_used: {budget_used} | total_b: {self.budget}')
-            
+            if itr%self.dump_rate == 0:
+                curr_dir = os.getcwd()
+                path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
+                os.makedirs(path_to_dir_to_create)
+                ge.state_archive.visualize(budget_used, itr=itr)
+                for key in self.state_archive._archive.keys():
+                    np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
+                            self.state_archive._archive[key]._elements)
+                    
     def __call__(self):
         pass
 
@@ -74,6 +83,11 @@ if __name__ == '__main__':
     import gym
     import gym_wrapper # for swimmerfullobs
 
+    import argparse
+    parser = argparse.ArgumentParser(description='Process run parameters.')
+    parser.add_argument('--selection', type=str, default='random')
+    parser.add_argument('--exploration', type=str, default='random')
+    
     controller_params = \
     {
         'controller_input_dim': 6,
@@ -98,17 +112,28 @@ if __name__ == '__main__':
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
+
+        'dump_rate': 5,
     }
+
+    args = parser.parse_args()
+
+    selection_method = RandomSelection
+    if args.selection is not None:
+        if args.selection == 'random':
+            selection_method = RandomSelection
+
+    exploration_method = RandomExploration
+    if args.exploration is not None:
+        if args.exploration == 'random':
+            exploration_method = RandomExploration
+        if args.exploration == 'ns':
+            exploration_method = NoveltySearchExploration
 
     ## Framework methods
     env = gym.make('BallInCup3d-v0')
 
-    selection_method = RandomSelection
-
     go_method = ExecutePolicyGo
-
-    # exploration_method = NoveltySearchExploration
-    exploration_method = RandomExploration
 
     state_archive_type = FixedGridArchive
     
@@ -118,6 +143,4 @@ if __name__ == '__main__':
 
     ge._exploration_phase()
 
-    ge.state_archive.visualize()
-
-    # import pdb; pdb.set_trace()
+    ge.state_archive.visualize(params['budget'], show=True)
