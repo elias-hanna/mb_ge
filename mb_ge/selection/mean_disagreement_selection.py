@@ -14,8 +14,12 @@ class MeanDisagreementSelection(SelectionMethod):
     def select_element_from_element_list(self, elements):
         most_disagreed_element = None
         max_disagr = None
+        if len(elements) == 1:
+            return elements[0]
         for element in elements:
             disagreements = element.disagreement ## disagreement for each traj step
+            if disagreements == []:
+                continue
             mean_disagr = np.mean([np.mean(disagr.detach().numpy()) for disagr in disagreements])
             if most_disagreed_element is not None:
                 if mean_disagr > max_disagr:

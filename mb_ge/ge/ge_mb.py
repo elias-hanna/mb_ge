@@ -28,7 +28,7 @@ class ModelBasedGoExplore(GoExplore):
         ## reset gym environment
         obs = self.gym_env.reset()
         ## add first state to state_archive
-        init_elem = Element(descriptor=self.gym_env.sim.data.qpos[:3], trajectory=[obs], reward=0.,
+        init_elem = Element(descriptor=obs[:3], trajectory=[obs], reward=0.,
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
         self.state_archive.add(init_elem)
@@ -63,7 +63,7 @@ class ModelBasedGoExplore(GoExplore):
             if itr%self.model_update_rate == 0:
                 self._dynamics_model.train()
             if itr%self.dump_rate == 0:
-                ge.state_archive.visualize(params['budget'])
+                ge.state_archive.visualize(budget_used)
             
     def __call__(self):
         pass
@@ -81,6 +81,11 @@ if __name__ == '__main__':
 
     import gym
     import gym_wrapper # for swimmerfullobs
+
+    import argparse
+    parser = argparse.ArgumentParser(description='Process run parameters.')
+    parser.add_argument('--selection', type=str, default='random')
+    parser.add_argument('--exploration', type=str, default='random')
 
     controller_params = \
     {
@@ -122,18 +127,29 @@ if __name__ == '__main__':
 
         'dump_rate': 50,
     }
+    args = parser.parse_args()
 
+    selection_method = RandomSelection
+    if args.selection is not None:
+        if args.selection == 'random':
+            selection_method = RandomSelection
+        if args.selection == 'meandisagr':
+            selection_method = MeanDisagreementSelection
+        if args.selection == 'maxdisagr':
+            selection_method = MaxDisagreementSelection
+
+    exploration_method = RandomExploration
+    if args.exploration is not None:
+        if args.exploration == 'random':
+            exploration_method = RandomExploration
+        if args.exploration == 'ns':
+            exploration_method = NoveltySearchExploration
+
+    
     ## Framework methods
     env = gym.make('BallInCup3d-v0')
 
-    # selection_method = RandomSelection
-    selection_method = MeanDisagreementSelection
-    # selection_method = MaxDisagreementSelection
-
     go_method = ExecutePolicyGo
-
-    # exploration_method = NoveltySearchExploration
-    exploration_method = RandomExploration
 
     state_archive_type = FixedGridArchive
 
