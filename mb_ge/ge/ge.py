@@ -63,7 +63,7 @@ class GoExplore():
                 curr_dir = os.getcwd()
                 path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create)
-                ge.state_archive.visualize(budget_used, itr=itr)
+                self.state_archive.visualize(budget_used, itr=itr)
                 for key in self.state_archive._archive.keys():
                     np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)

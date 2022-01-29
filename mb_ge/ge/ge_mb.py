@@ -2,6 +2,7 @@ import numpy as np
 from mb_ge.utils.element import Element
 from mb_ge.ge.ge import GoExplore
 import copy
+import os
 
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, selection_method=None,
@@ -63,11 +64,10 @@ class ModelBasedGoExplore(GoExplore):
             if itr%self.model_update_rate == 0:
                 self._dynamics_model.train()
             if itr%self.dump_rate == 0:
-                if itr%self.dump_rate == 0:
                 curr_dir = os.getcwd()
                 path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create)
-                ge.state_archive.visualize(budget_used, itr=itr)
+                self.state_archive.visualize(budget_used, itr=itr)
                 for key in self.state_archive._archive.keys():
                     np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)
