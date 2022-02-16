@@ -18,7 +18,30 @@ if __name__ == '__main__':
     parser.add_argument('--algorithm', type=str, default='ge')
     parser.add_argument('--selection', type=str, default='random')
     parser.add_argument('--exploration', type=str, default='random')
+    parser.add_argument('--budget', type=int, default=100000)
 
+    args = parser.parse_args()
+
+    selection_method = RandomSelection
+    if args.selection is not None:
+        if args.selection == 'random':
+            selection_method = RandomSelection
+        if args.selection == 'meandisagr':
+            selection_method = MeanDisagreementSelection
+        if args.selection == 'maxdisagr':
+            selection_method = MaxDisagreementSelection
+
+    exploration_method = RandomExploration
+    if args.exploration is not None:
+        if args.exploration == 'random':
+            exploration_method = RandomExploration
+        if args.exploration == 'ns':
+            exploration_method = NoveltySearchExploration
+
+    budget = 100000
+    if args.budget is not None:
+        budget = args.budget
+        
     controller_params = \
     {
         'controller_input_dim': 6,
@@ -41,7 +64,7 @@ if __name__ == '__main__':
         'controller_type': NeuralNetworkController,
         'controller_params': controller_params,
         
-        'budget': 100000,
+        'budget': budget,
         'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
@@ -60,23 +83,7 @@ if __name__ == '__main__':
         'dump_rate': 50,
     }
     
-    args = parser.parse_args()
-
-    selection_method = RandomSelection
-    if args.selection is not None:
-        if args.selection == 'random':
-            selection_method = RandomSelection
-        if args.selection == 'meandisagr':
-            selection_method = MeanDisagreementSelection
-        if args.selection == 'maxdisagr':
-            selection_method = MaxDisagreementSelection
-
-    exploration_method = RandomExploration
-    if args.exploration is not None:
-        if args.exploration == 'random':
-            exploration_method = RandomExploration
-        if args.exploration == 'ns':
-            exploration_method = NoveltySearchExploration
+    
 
     ## Framework methods
     env = gym.make('BallInCup3d-v0')
@@ -101,5 +108,5 @@ if __name__ == '__main__':
     
     ge._exploration_phase()
 
-    ge.state_archive.visualize(params['budget'], show=True)
+    ge.state_archive.visualize(params['budget'], show=False, itr=params['dump_rate'])
 

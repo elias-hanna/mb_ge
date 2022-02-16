@@ -64,7 +64,7 @@ class RandomExploration(ExplorationMethod):
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
             action = controller(obs)
-            next_step_pred, disagreement = model.forward(action, obs, mean=False, disagr=True)
+            next_step_pred, disagreement = model.forward(action, obs, mean=True, disagr=True)
             ## Compute mean prediction from model samples
             mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
             obs = mean_pred
