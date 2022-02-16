@@ -17,6 +17,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process run parameters.')
     parser.add_argument('--algorithm', type=str, default='ge')
     parser.add_argument('--selection', type=str, default='random')
+    parser.add_argument('--transfer-selection', type=str, default='random')
+    parser.add_argument('--cell-selection', type=str, default='random')
     parser.add_argument('--exploration', type=str, default='random')
     parser.add_argument('--budget', type=int, default=100000)
 
@@ -30,6 +32,24 @@ if __name__ == '__main__':
             selection_method = MeanDisagreementSelection
         if args.selection == 'maxdisagr':
             selection_method = MaxDisagreementSelection
+
+    cell_selection_method = RandomSelection
+    if args.cell_selection is not None:
+        if args.cell_selection == 'random':
+            cell_selection_method = RandomSelection
+        if args.cell_selection == 'statedisagr':
+            cell_selection_method = StateDisagreementSelection
+
+    transfer_selection_method = RandomSelection
+    if args.transfer_selection is not None:
+        if args.transfer_selection == 'random':
+            transfer_selection_method = RandomSelection
+        if args.transfer_selection == 'meandisagr':
+            transfer_selection_method = MeanDisagreementSelection
+        if args.transfer_selection == 'maxdisagr':
+            transfer_selection_method = MaxDisagreementSelection
+        if args.transfer_selection == 'statedisagr':
+            transfer_selection_method = StateDisagreementSelection
 
     exploration_method = RandomExploration
     if args.exploration is not None:
@@ -63,6 +83,9 @@ if __name__ == '__main__':
     {
         'controller_type': NeuralNetworkController,
         'controller_params': controller_params,
+
+        'action_min': -1,
+        'action_max': 1,
         
         'budget': budget,
         'exploration_horizon': 10,
@@ -81,6 +104,8 @@ if __name__ == '__main__':
         'dynamics_model_params': dynamics_model_params,
 
         'dump_rate': 50,
+
+        'nb_of_samples_per_state':10,
     }
     
     
@@ -101,7 +126,9 @@ if __name__ == '__main__':
                            state_archive=state_archive_type)
 
         if args.algorithm == 'mb_ge':
-            ge = ModelBasedGoExplore(params=params, gym_env=env, selection_method=selection_method,
+            ge = ModelBasedGoExplore(params=params, gym_env=env,
+                                     cell_selection_method=selection_method,
+                                     transfer_selection_method=selection_method,
                                      go_method=go_method, exploration_method=exploration_method,
                                      state_archive=state_archive_type,
                                      dynamics_model=dynamics_model)

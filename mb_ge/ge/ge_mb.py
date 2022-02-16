@@ -6,8 +6,9 @@ import os
 
 
 class ModelBasedGoExplore(GoExplore):
-    def __init__(self, params=None, gym_env=None, selection_method=None,
-                 go_method=None, exploration_method=None, state_archive=None, dynamics_model=None):
+    def __init__(self, params=None, gym_env=None, cell_selection_method=None,
+                 transfer_selection_method=None, go_method=None, exploration_method=None,
+                 state_archive=None, dynamics_model=None):
         super().__init__(params=params, gym_env=gym_env, selection_method=selection_method,
                          go_method=go_method, exploration_method=exploration_method,
                          state_archive=state_archive)

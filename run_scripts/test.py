@@ -1,20 +1,20 @@
 import mb_ge
 import gym
 
-from pybotics.robot import Robot
-from pybotics.predefined_models import ur10
+# from pybotics.robot import Robot
+# from pybotics.predefined_models import ur10
 
-robot = Robot.from_parameters(ur10())
+# robot = Robot.from_parameters(ur10())
 
 import numpy as np
 np.set_printoptions(suppress=True)
 
 joints = np.deg2rad([5,5,5,5,5,5])
-pose = robot.fk(joints)
-print(pose)
+# pose = robot.fk(joints)
+# print(pose)
 
-solved_joints = robot.ik(pose)
-print(np.rad2deg(solved_joints))
+# solved_joints = robot.ik(pose)
+# print(np.rad2deg(solved_joints))
 
 # exit()
 
@@ -23,9 +23,9 @@ kwargs = {"dense":True, "random_init":True}
 env = gym.make("BallInCup3d-v0", **kwargs) # deterministic
 
 # PPO example, PPO is on-policy
-from stable_baselines3 import PPO
-model = PPO("MlpPolicy", env, verbose=1)
-model.learn(total_timesteps=1000)
+# from stable_baselines3 import PPO
+# model = PPO("MlpPolicy", env, verbose=1)
+# model.learn(total_timesteps=1000)
 
 
 # DDPG example, DDPG is off-policy
@@ -62,7 +62,7 @@ model.learn(total_timesteps=1000)
 obs = env.reset()
 for i in range(1000):
   action = env.action_space.sample()
-  action, _states = model.predict(obs, deterministic=True)
+  # action, _states = model.predict(obs, deterministic=True)
   obs, reward, done, info = env.step(action)
   env.render()
   if done:

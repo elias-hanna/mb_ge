@@ -49,6 +49,16 @@ class ExplorationMethod():
             self.controller = params['controller_type'](params=params)
         else:
             raise Exception('ExplorationMethod _process_params error: controller_type not in params')
+        if 'action_min' in params:
+            self._action_min = params['action_min']
+        else:
+            print('Warning: using default action min value (-1)')
+            self._action_min = -1
+        if 'action_max' in params:
+            self._action_max = params['action_max']
+        else:
+            print('Warning: using default action max value (1)')
+            self._action_max = 1
 
     def _compute_spent_budget(self, elements):
         return sum([len(el.trajectory) for el in elements])
