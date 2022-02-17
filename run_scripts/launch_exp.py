@@ -2,6 +2,7 @@ if __name__ == '__main__':
     from mb_ge.selection.random_selection import RandomSelection
     from mb_ge.selection.mean_disagreement_selection import MeanDisagreementSelection
     from mb_ge.selection.max_disagreement_selection import MaxDisagreementSelection
+    from mb_ge.selection.state_disagreement_selection import StateDisagreementSelection
     from mb_ge.go.execute_policy_go import ExecutePolicyGo
     from mb_ge.exploration.random_exploration import RandomExploration
     from mb_ge.exploration.ns_exploration import NoveltySearchExploration

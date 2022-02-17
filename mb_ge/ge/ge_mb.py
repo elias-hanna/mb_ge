@@ -9,10 +9,13 @@ class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
                  transfer_selection_method=None, go_method=None, exploration_method=None,
                  state_archive=None, dynamics_model=None):
-        super().__init__(params=params, gym_env=gym_env, selection_method=selection_method,
+        super().__init__(params=params, gym_env=gym_env, selection_method=cell_selection_method,
                          go_method=go_method, exploration_method=exploration_method,
                          state_archive=state_archive)
         self._dynamics_model = dynamics_model(params=params)
+        params['model'] = self._dynamics_model # grab the ref to pass it to selection methods
+        self._cell_selection_method = cell_selection_method(params=params)
+        self._transfer_selection_method = transfer_selection_method(params=params)
 
     def _process_params(self, params):
         super()._process_params(params)
@@ -27,6 +30,7 @@ class ModelBasedGoExplore(GoExplore):
             trajectory.append(copy.copy(t[1]))
         el.descriptor = trajectory[-1][:3]
         el.trajectory = trajectory[-self.h_exploration:]
+        el.disagreement = 0. # no disagreement on this traj since we experienced it on real system
 
     def _exploration_phase(self):
         # reset gym environment
@@ -41,18 +45,23 @@ class ModelBasedGoExplore(GoExplore):
         i_budget_used = 0
         done = False
         itr = 0
+        h_max = 40
+        h_min = 10
+        self.h_exploration = h_min
         while budget_used < self.budget and not done:
+            ## Update horizon length
+            self.h_exploration = int(max(h_min,
+                                     np.floor((budget_used/self.budget)*(h_max-h_min)+h_min)))
+            ## Reset environment
             obs = self.gym_env.reset()
             # Select a state to return from the archive
-            el = self._selection_method.select_element_from_cell_archive(
-                self.state_archive)
+            el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
             # import pdb; pdb.set_trace()
             # Go to and Explore in imagination from the selected state
             i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
                                                             self.h_exploration, eval_on_model=True)
             # Select a state to go to from states found in imagination
-            sel_i_el = self._selection_method.select_element_from_element_list(
-                i_elements)
+            sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go back to the selected state
             transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
             # Correct sel_i_el to have the right trajectory
@@ -63,16 +72,14 @@ class ModelBasedGoExplore(GoExplore):
             i_budget_used += i_b_used
             budget_used += b_used
             itr += 1
-            print(
-                f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget}')
+            print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_model_horizon: {self.h_exploration}')
             # Train the dynamics model
             self._dynamics_model.add_samples_from_transitions(transitions)
             if itr % self.model_update_rate == 0:
                 self._dynamics_model.train()
             if itr % self.dump_rate == 0:
                 curr_dir = os.getcwd()
-                path_to_dir_to_create = os.path.join(
-                    curr_dir, f'results_{itr}')
+                path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create)
                 self.state_archive.visualize(budget_used, itr=itr)
                 for key in self.state_archive._archive.keys():
@@ -81,99 +88,3 @@ class ModelBasedGoExplore(GoExplore):
 
     def __call__(self):
         pass
-
-
-if __name__ == '__main__':
-    from mb_ge.selection.random_selection import RandomSelection
-    from mb_ge.selection.mean_disagreement_selection import MeanDisagreementSelection
-    from mb_ge.selection.max_disagreement_selection import MaxDisagreementSelection
-    from mb_ge.go.execute_policy_go import ExecutePolicyGo
-    from mb_ge.exploration.random_exploration import RandomExploration
-    from mb_ge.exploration.ns_exploration import NoveltySearchExploration
-    from mb_ge.archive.fixed_grid_archive import FixedGridArchive
-    from mb_ge.models.dynamics_model import DynamicsModel
-    from mb_ge.controller.nn_controller import NeuralNetworkController
-
-    import gym
-    import gym_wrapper  # for swimmerfullobs
-
-    import argparse
-    parser = argparse.ArgumentParser(description='Process run parameters.')
-    parser.add_argument('--selection', type=str, default='random')
-    parser.add_argument('--exploration', type=str, default='random')
-
-    controller_params = \
-        {
-            'controller_input_dim': 6,
-            'controller_output_dim': 3,
-            'n_hidden_layers': 2,
-            'n_neurons_per_hidden': 50
-        }
-    dynamics_model_params = \
-        {
-            'obs_dim': 6,
-            'action_dim': 3,
-            'dynamics_model_type': 'prob',  # possible values: prob, det
-            'ensemble_size': 4,  # only used if dynamics_model_type == prob
-            'layer_size': 500,
-            'batch_size': 512,
-            'learning_rate': 1e-3,
-        }
-    params = \
-        {
-            'controller_type': NeuralNetworkController,
-            'controller_params': controller_params,
-
-            'budget': 100000,
-            'exploration_horizon': 10,
-            'nb_eval_exploration': 10,
-            'nb_thread_exploration': 6,
-
-            'archive_type': 'cell',
-            'fixed_grid_min': -0.5,
-            'fixed_grid_max': 0.5,
-            'fixed_grid_div': 5,
-
-            'policy_param_init_min': -5,
-            'policy_param_init_max': 5,
-
-            'model_update_rate': 10,
-            'dynamics_model_params': dynamics_model_params,
-
-            'dump_rate': 50,
-        }
-
-    args = parser.parse_args()
-
-    selection_method = RandomSelection
-    if args.selection is not None:
-        if args.selection == 'random':
-            selection_method = RandomSelection
-        if args.selection == 'meandisagr':
-            selection_method = MeanDisagreementSelection
-        if args.selection == 'maxdisagr':
-            selection_method = MaxDisagreementSelection
-
-    exploration_method = RandomExploration
-    if args.exploration is not None:
-        if args.exploration == 'random':
-            exploration_method = RandomExploration
-        if args.exploration == 'ns':
-            exploration_method = NoveltySearchExploration
-
-    # Framework methods
-    env = gym.make('BallInCup3d-v0')
-
-    go_method = ExecutePolicyGo
-
-    state_archive_type = FixedGridArchive
-
-    dynamics_model = DynamicsModel
-
-    ge = ModelBasedGoExplore(params=params, gym_env=env, selection_method=selection_method,
-                             go_method=go_method, exploration_method=exploration_method,
-                             state_archive=state_archive_type, dynamics_model=dynamics_model)
-
-    ge._exploration_phase()
-
-    ge.state_archive.visualize(params['budget'], show=True)
