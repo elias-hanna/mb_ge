@@ -54,7 +54,7 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self.do_simulation(a, self.frame_skip)
         self.steps += 1
 
-        obs = self._get_obs()
+        obs = self.get_obs()
         info = dict(task_reward=task_reward, reward_ctrl=reward_ctrl)
         done = self._is_done(info)
 
@@ -91,9 +91,9 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             qvel = np.array(self.init_qvel)
             
         self.set_state(qpos, qvel)
-        return self._get_obs()
+        return self.get_obs()
 
-    def _get_obs(self):
+    def get_obs(self):
         if self.relative_obs:
             return np.concatenate((
                 # self.sim.data.qpos.flat[:3] - self.sim.data.qpos.flat[3:], # cup - ball pose

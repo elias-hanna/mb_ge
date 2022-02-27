@@ -20,7 +20,7 @@ class ExecutePolicyGo(GoMethod):
                 len_under_policy.insert(0, len(prev_el.trajectory))
             prev_el = prev_el.previous_element
         ## Replay policies from initial state to el goal state
-        obs = gym_env._get_obs()
+        obs = gym_env.get_obs()
         ## Check if el is init elem
         if el.policy_parameters is None:
             transitions.append((None, obs))

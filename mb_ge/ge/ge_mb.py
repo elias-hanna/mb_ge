@@ -85,6 +85,3 @@ class ModelBasedGoExplore(GoExplore):
                 for key in self.state_archive._archive.keys():
                     np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)
-
-    def __call__(self):
-        pass

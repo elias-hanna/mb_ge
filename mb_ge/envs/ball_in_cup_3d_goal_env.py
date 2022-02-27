@@ -17,7 +17,7 @@ class BallInCup3dGoalEnv(BallInCup3dEnv, GoalEnv):
         BallInCup3dEnv.__init__(self, verbose=verbose)
         self.ball_size = self.sim.model.geom_size[2, 0]
         self.obs_shape = self.observation_space['observation'].shape
-        self.obs_shape = BallInCup3dEnv._get_obs(self).shape
+        self.obs_shape = BallInCup3dEnv.get_obs(self).shape
         # import pdb; pdb.set_trace()
         # Goal space is in cartesian space
         # achieved_goal = desired_goal space
@@ -33,8 +33,8 @@ class BallInCup3dGoalEnv(BallInCup3dEnv, GoalEnv):
         )
 
     # goal needs to be fixed (or relative, here in end-effector frame)
-    def _get_obs(self):
-        normal_obs = BallInCup3dEnv._get_obs(self)
+    def get_obs(self):
+        normal_obs = BallInCup3dEnv.get_obs(self)
         ## Use relative position of ball and target as goal-space
         ball_to_targ = self.ball_to_target()
         achieved_goal = np.array([ball_to_targ[0], ball_to_targ[1], ball_to_targ[2]])
@@ -52,14 +52,14 @@ class BallInCup3dGoalEnv(BallInCup3dEnv, GoalEnv):
 
     def step(self, a):
         reward_ctrl = -np.square(a).sum()
-        obs = self._get_obs()
+        obs = self.get_obs()
         task_reward = self.compute_reward(obs['achieved_goal'], obs['desired_goal'], {})
         reward = task_reward # + reward_ctrl
         
         self.do_simulation(a, self.frame_skip)
         self.steps +=1
         
-        obs = self._get_obs()
+        obs = self.get_obs()
         info = dict(task_reward=task_reward, reward_ctrl=reward_ctrl)
         done = self._is_done(info)
 
