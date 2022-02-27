@@ -22,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--cell-selection', type=str, default='random')
     parser.add_argument('--exploration', type=str, default='random')
     parser.add_argument('--budget', type=int, default=100000)
+    parser.add_argument('--dump-path', type=str)
 
     args = parser.parse_args()
 
@@ -104,12 +105,12 @@ if __name__ == '__main__':
         'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
 
-        'dump_rate': 50,
-
+        'dump_rate': 5,
         'nb_of_samples_per_state':10,
     }
     
-    
+    if args.dump_path is not None:
+        params['dump_path'] = args.dump_path    
 
     ## Framework methods
     env = gym.make('BallInCup3d-v0')

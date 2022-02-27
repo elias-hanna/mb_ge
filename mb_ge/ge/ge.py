@@ -30,6 +30,11 @@ class GoExplore():
             self.dump_rate = params['dump_rate']
         else:
             self.dump_rate = 100
+        if 'dump_path' in params:
+            self.dump_path = params['dump_path']
+        else:
+            curr_dir = os.getcwd()
+            self.dump_path = curr_dir
             
     def _exploration_phase(self):
         ## reset gym environment
@@ -60,12 +65,11 @@ class GoExplore():
             itr += 1
             print(f'b_used: {budget_used} | total_b: {self.budget}')
             if itr%self.dump_rate == 0:
-                curr_dir = os.getcwd()
-                path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
+                path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create)
                 self.state_archive.visualize(budget_used, itr=itr)
                 for key in self.state_archive._archive.keys():
-                    np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
+                    np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)
                     
     def __call__(self):

@@ -11,6 +11,7 @@ class FixedGridArchive(Archive):
         self._process_params(params)
         
     def _process_params(self, params):
+        super()._process_params(params)
         if 'fixed_grid_min' in params:
             self._grid_min = params['fixed_grid_min']
         else:

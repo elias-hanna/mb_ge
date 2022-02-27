@@ -78,10 +78,9 @@ class ModelBasedGoExplore(GoExplore):
             if itr % self.model_update_rate == 0:
                 self._dynamics_model.train()
             if itr % self.dump_rate == 0:
-                curr_dir = os.getcwd()
-                path_to_dir_to_create = os.path.join(curr_dir, f'results_{itr}')
+                path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create)
                 self.state_archive.visualize(budget_used, itr=itr)
                 for key in self.state_archive._archive.keys():
-                    np.save(f'results_{itr}/archive_cell_{key}_itr_{itr}',
+                    np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)

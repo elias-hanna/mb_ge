@@ -4,10 +4,13 @@ class Archive():
     def __init__(self, params=None):
         ## Archive is a dict
         self._archive = dict()
-
     
     def _process_params(self, params):
-        pass
+        if 'dump_path' in params:
+            self.dump_path = params['dump_path']
+        else:
+            curr_dir = os.getcwd()
+            self.dump_path = curr_dir
     
     @abstractmethod
     def add(self, element):
@@ -76,6 +79,6 @@ class Archive():
 
         ax.scatter(x, y, z)  
         plt.gca().invert_zaxis()
-        plt.savefig(f"results_{itr}/state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+        plt.savefig(f"{self.dump_path}/results_{itr}/state_archive_at_{curr_budget}_eval", bbox_inches='tight')
         if show:
             plt.show()
