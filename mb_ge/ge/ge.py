@@ -17,7 +17,7 @@ class GoExplore():
         ## Transition Dataset initialization (used to train Dynamics Model)
         self.action_space_dim = self.gym_env.action_space.shape[0]
         self.observation_space_dim = self.gym_env.observation_space.shape[0]
-        self.observed_transitions = None # init to None so it errors out if not properly initialized
+        self.observed_transitions = []
 
     def _process_params(self, params):
         if 'budget' in params:
@@ -53,13 +53,14 @@ class GoExplore():
             ## Select a state to return from the archive
             el = self._selection_method.select_element_from_cell_archive(self.state_archive)
             ## Go back to the selected state
-            _, b_used = self._go_method.go(self.gym_env, el)
+            transitions, b_used = self._go_method.go(self.gym_env, el)
             budget_used += b_used
             ## Explore from the selected state
             elements, b_used = self._exploration_method(self.gym_env, el, self.h_exploration)
             ## Update archive and other datasets
             for elem in elements:
                 self.state_archive.add(elem)
+            self.observed_transitions.append(transitions)
             ## Update used budget
             budget_used += b_used
             itr += 1

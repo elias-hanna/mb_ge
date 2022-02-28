@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import os
 
 class Archive():
     def __init__(self, params=None):

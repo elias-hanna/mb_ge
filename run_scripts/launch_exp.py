@@ -105,7 +105,7 @@ if __name__ == '__main__':
         'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
 
-        'dump_rate': 5,
+        'dump_rate': 50,
         'nb_of_samples_per_state':10,
     }
     
@@ -136,6 +136,6 @@ if __name__ == '__main__':
                                      dynamics_model=dynamics_model)
     
     ge._exploration_phase()
-
+    import numpy as np
+    np.save(f'all_transitions_{budget}', np.array(ge.observed_transitions))
     ge.state_archive.visualize(params['budget'], show=False, itr=params['dump_rate'])
-

@@ -4,7 +4,6 @@ from mb_ge.ge.ge import GoExplore
 import copy
 import os
 
-
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
                  transfer_selection_method=None, go_method=None, exploration_method=None,
@@ -68,6 +67,7 @@ class ModelBasedGoExplore(GoExplore):
             self._correct_el(sel_i_el, transitions)
             # Update archive and other datasets
             self.state_archive.add(sel_i_el)
+            self.observed_transitions.append(transitions)
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used
