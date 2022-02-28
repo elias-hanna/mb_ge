@@ -139,3 +139,4 @@ if __name__ == '__main__':
     import numpy as np
     np.save(f'all_transitions_{budget}', np.array(ge.observed_transitions))
     ge.state_archive.visualize(params['budget'], show=False, itr=params['dump_rate'])
+ 
