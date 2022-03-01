@@ -1,8 +1,10 @@
 class Cell():
     def __init__(self):
         self._elements = list()
-
+        self.visit_count = 0
+        
     def add(self, element):
+        self.visit_count += 1
         self._elements.append(element)
 
     def remove(self, element):

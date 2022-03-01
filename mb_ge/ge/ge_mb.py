@@ -8,11 +8,12 @@ class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
                  transfer_selection_method=None, go_method=None, exploration_method=None,
                  state_archive=None, dynamics_model=None):
-        super().__init__(params=params, gym_env=gym_env, selection_method=cell_selection_method,
-                         go_method=go_method, exploration_method=exploration_method,
-                         state_archive=state_archive)
         self._dynamics_model = dynamics_model(params=params)
         params['model'] = self._dynamics_model # grab the ref to pass it to selection methods
+        super().__init__(params=params, gym_env=gym_env,
+                         cell_selection_method=cell_selection_method,
+                         go_method=go_method, exploration_method=exploration_method,
+                         state_archive=state_archive)
         self._cell_selection_method = cell_selection_method(params=params)
         self._transfer_selection_method = transfer_selection_method(params=params)
 
@@ -67,7 +68,26 @@ class ModelBasedGoExplore(GoExplore):
             self._correct_el(sel_i_el, transitions)
             # Update archive and other datasets
             self.state_archive.add(sel_i_el)
-            self.observed_transitions.append(transitions)
+            ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
+            if len(transitions) > 1 and self.dump_all_transitions:
+                import copy
+                A = []
+                S = []
+                NS = []
+                for i in range(len(transitions) - 1):
+                    A.append(copy.copy(transitions[i][0]))
+                    S.append(copy.copy(transitions[i][1]))
+                    NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
+                A = np.array(A)
+                S = np.array(S)
+                NS = np.array(NS)
+                new_trs = np.concatenate([S, A, NS], axis=1)
+                tmp = np.zeros((len(new_trs)+len(self.observed_transitions), new_trs.shape[1]))
+                if len(self.observed_transitions) > 0:
+                    tmp[0:len(self.observed_transitions)] = self.observed_transitions
+                tmp[len(self.observed_transitions):
+                    len(self.observed_transitions) + len(new_trs)] = new_trs
+                self.observed_transitions = np.unique(tmp, axis=0)
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used

@@ -25,6 +25,10 @@ class StateDisagreementSelection(SelectionMethod):
             self._model = params['model']
         else:
             raise Exception('StateDisagreementSelection _process_params error: model not in params')
+        if 'action_dim' in params['dynamics_model_params']:
+            self._action_dim = params['dynamics_model_params']['action_dim']
+        else:
+            raise Exception('StateDisagreementSelection _process_params error: action_dim not in params')
         
     def select_element_from_cell_archive(self, archive):
         most_disagreed_elements = []
@@ -41,7 +45,7 @@ class StateDisagreementSelection(SelectionMethod):
             last_obs = element.trajectory[-1]
             mean_disagreements = []
             for _ in range(self.nb_of_samples_per_state):
-                action = np.random.uniform(low=-1, high=1)
+                action = np.random.uniform(low=-1, high=1, size=self._action_dim)
                 _, disagreement = self._model.forward(action, last_obs, mean=True, disagr=True)
                 mean_disagreements.append(disagreement)
 

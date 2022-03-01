@@ -17,24 +17,14 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Process run parameters.')
     parser.add_argument('--algorithm', type=str, default='ge')
-    parser.add_argument('--selection', type=str, default='random')
-    parser.add_argument('--transfer-selection', type=str, default='random')
     parser.add_argument('--cell-selection', type=str, default='random')
+    parser.add_argument('--transfer-selection', type=str, default='random')
     parser.add_argument('--exploration', type=str, default='random')
     parser.add_argument('--budget', type=int, default=100000)
     parser.add_argument('--dump-path', type=str)
     parser.add_argument('--dump-rate', type=int)
 
     args = parser.parse_args()
-
-    selection_method = RandomSelection
-    if args.selection is not None:
-        if args.selection == 'random':
-            selection_method = RandomSelection
-        if args.selection == 'meandisagr':
-            selection_method = MeanDisagreementSelection
-        if args.selection == 'maxdisagr':
-            selection_method = MaxDisagreementSelection
 
     cell_selection_method = RandomSelection
     if args.cell_selection is not None:
@@ -129,14 +119,14 @@ if __name__ == '__main__':
 
     if args.algorithm is not None:
         if args.algorithm == 'ge':
-            ge = GoExplore(params=params, gym_env=env, selection_method=selection_method,
+            ge = GoExplore(params=params, gym_env=env, cell_selection_method=cell_selection_method,
                            go_method=go_method, exploration_method=exploration_method,
                            state_archive=state_archive_type)
 
         if args.algorithm == 'mb_ge':
             ge = ModelBasedGoExplore(params=params, gym_env=env,
-                                     cell_selection_method=selection_method,
-                                     transfer_selection_method=selection_method,
+                                     cell_selection_method=cell_selection_method,
+                                     transfer_selection_method=transfer_selection_method,
                                      go_method=go_method, exploration_method=exploration_method,
                                      state_archive=state_archive_type,
                                      dynamics_model=dynamics_model)

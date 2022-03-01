@@ -3,12 +3,12 @@ from mb_ge.utils.element import Element
 import os
 
 class GoExplore():
-    def __init__(self, params=None, gym_env=None, selection_method=None,
+    def __init__(self, params=None, gym_env=None, cell_selection_method=None,
                  go_method=None, exploration_method=None, state_archive=None):
         ## Process run parameters
         self._process_params(params)
         ## Intialize functors (do this in params?)
-        self._selection_method = selection_method()
+        self._cell_selection_method = cell_selection_method(params=params)
         self._go_method = go_method(params=params)
         self._exploration_method = exploration_method(params=params)
         ## Intialize state_archive
@@ -50,11 +50,10 @@ class GoExplore():
         itr = 0
         budget_used = 0
         done = False
-        total_nb_of_transitions = 0
         while budget_used < self.budget and not done:
             obs = self.gym_env.reset()
             ## Select a state to return from the archive
-            el = self._selection_method.select_element_from_cell_archive(self.state_archive)
+            el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
             ## Go back to the selected state
             transitions, b_used = self._go_method.go(self.gym_env, el)
             budget_used += b_used
@@ -73,7 +72,6 @@ class GoExplore():
                     A.append(copy.copy(transitions[i][0]))
                     S.append(copy.copy(transitions[i][1]))
                     NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
-                    total_nb_of_transitions += 1
                 A = np.array(A)
                 S = np.array(S)
                 NS = np.array(NS)
