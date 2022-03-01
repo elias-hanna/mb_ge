@@ -1,6 +1,5 @@
 import numpy as np
 from mb_ge.utils.element import Element
-import os
 
 class GoExplore():
     def __init__(self, params=None, gym_env=None, selection_method=None,
@@ -33,6 +32,7 @@ class GoExplore():
         if 'dump_path' in params:
             self.dump_path = params['dump_path']
         else:
+            import os
             curr_dir = os.getcwd()
             self.dump_path = curr_dir
             
@@ -60,7 +60,7 @@ class GoExplore():
             ## Update archive and other datasets
             for elem in elements:
                 self.state_archive.add(elem)
-            self.observed_transitions.append(transitions)
+            # self.observed_transitions.append(transitions) ## not a good idea for large datasets
             ## Update used budget
             budget_used += b_used
             itr += 1
