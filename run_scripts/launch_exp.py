@@ -23,6 +23,7 @@ if __name__ == '__main__':
     parser.add_argument('--exploration', type=str, default='random')
     parser.add_argument('--budget', type=int, default=100000)
     parser.add_argument('--dump-path', type=str)
+    parser.add_argument('--dump-rate', type=int)
 
     args = parser.parse_args()
 
@@ -63,6 +64,10 @@ if __name__ == '__main__':
     budget = 100000
     if args.budget is not None:
         budget = args.budget
+
+    dump_rate = 50
+    if args.dump_rate is not None:
+        dump_rate = args.dump_rate
         
     controller_params = \
     {
@@ -105,7 +110,7 @@ if __name__ == '__main__':
         'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
 
-        'dump_rate': 50,
+        'dump_rate': dump_rate,
         'nb_of_samples_per_state':10,
     }
     
