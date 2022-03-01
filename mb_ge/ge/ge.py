@@ -72,6 +72,12 @@ class GoExplore():
                 for key in self.state_archive._archive.keys():
                     np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)
+        path_to_dir_to_create = os.path.join(self.dump_path, f'results_final')
+        os.makedirs(path_to_dir_to_create, exist_ok=True)
+        self.state_archive.visualize(budget_used, itr=itr)
+        for key in self.state_archive._archive.keys():
+            np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_final',
+                    self.state_archive._archive[key]._elements)
                     
     def __call__(self):
         return self._exploration_phase()
