@@ -1,5 +1,6 @@
 if __name__ == '__main__':
     from mb_ge.selection.random_selection import RandomSelection
+    from mb_ge.selection.heuristic_selection import HeuristicSelection
     from mb_ge.selection.mean_disagreement_selection import MeanDisagreementSelection
     from mb_ge.selection.max_disagreement_selection import MaxDisagreementSelection
     from mb_ge.selection.state_disagreement_selection import StateDisagreementSelection
@@ -30,6 +31,8 @@ if __name__ == '__main__':
     if args.cell_selection is not None:
         if args.cell_selection == 'random':
             cell_selection_method = RandomSelection
+        if args.cell_selection == 'heuristic':
+            cell_selection_method = HeuristicSelection
         if args.cell_selection == 'statedisagr':
             cell_selection_method = StateDisagreementSelection
 
