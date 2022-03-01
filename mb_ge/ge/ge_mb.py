@@ -84,3 +84,11 @@ class ModelBasedGoExplore(GoExplore):
                 for key in self.state_archive._archive.keys():
                     np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)
+
+        path_to_dir_to_create = os.path.join(self.dump_path, f'results_final')
+        os.makedirs(path_to_dir_to_create, exist_ok=True)
+        self.state_archive.visualize(budget_used, itr='final')
+        for key in self.state_archive._archive.keys():
+            np.save(f'{self.dump_path}/results_final/archive_cell_{key}_final',
+                    self.state_archive._archive[key]._elements)
+        np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))

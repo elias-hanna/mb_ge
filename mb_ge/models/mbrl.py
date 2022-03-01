@@ -57,6 +57,7 @@ class MBRLTrainer(TorchTrainer):
             return
 
         data_tmp = replay_buffer.get_transitions()
+        import pdb; pdb.set_trace()
         if use_unique_transitions:
             data = np.unique(data_tmp, axis=0)
         else:

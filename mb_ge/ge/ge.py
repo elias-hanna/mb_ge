@@ -1,5 +1,6 @@
 import numpy as np
 from mb_ge.utils.element import Element
+import os
 
 class GoExplore():
     def __init__(self, params=None, gym_env=None, selection_method=None,
@@ -25,6 +26,8 @@ class GoExplore():
             self.h_exploration = params['exploration_horizon']
         if 'controller_type' in params:
             self.controller_type = params['controller_type']
+        if 'dump_all_transitions' in params:
+            self.dump_all_transitions = params['dump_all_transitions']
         if 'dump_rate' in params:
             self.dump_rate = params['dump_rate']
         else:
@@ -43,11 +46,11 @@ class GoExplore():
         init_elem = Element(descriptor=obs[:3], trajectory=[obs], reward=0.,
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
-        # import pdb; pdb.set_trace()
         self.state_archive.add(init_elem)
         itr = 0
         budget_used = 0
         done = False
+        total_nb_of_transitions = 0
         while budget_used < self.budget and not done:
             obs = self.gym_env.reset()
             ## Select a state to return from the archive
@@ -60,7 +63,28 @@ class GoExplore():
             ## Update archive and other datasets
             for elem in elements:
                 self.state_archive.add(elem)
-            # self.observed_transitions.append(transitions) ## not a good idea for large datasets
+            ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
+            if len(transitions) > 1 and self.dump_all_transitions:
+                print("kakaka")
+                import copy
+                A = []
+                S = []
+                NS = []
+                for i in range(len(transitions) - 1):
+                    A.append(copy.copy(transitions[i][0]))
+                    S.append(copy.copy(transitions[i][1]))
+                    NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
+                    total_nb_of_transitions += 1
+                A = np.array(A)
+                S = np.array(S)
+                NS = np.array(NS)
+                new_trs = np.concatenate([S, A, NS], axis=1)
+                tmp = np.zeros((len(new_trs)+len(self.observed_transitions), new_trs.shape[1]))
+                if len(self.observed_transitions) > 0:
+                    tmp[0:len(self.observed_transitions)] = self.observed_transitions
+                tmp[len(self.observed_transitions):
+                    len(self.observed_transitions) + len(new_trs)] = new_trs
+                self.observed_transitions = np.unique(tmp, axis=0)
             ## Update used budget
             budget_used += b_used
             itr += 1
@@ -72,12 +96,14 @@ class GoExplore():
                 for key in self.state_archive._archive.keys():
                     np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             self.state_archive._archive[key]._elements)
+
         path_to_dir_to_create = os.path.join(self.dump_path, f'results_final')
         os.makedirs(path_to_dir_to_create, exist_ok=True)
-        self.state_archive.visualize(budget_used, itr=itr)
+        self.state_archive.visualize(budget_used, itr='final')
         for key in self.state_archive._archive.keys():
-            np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_final',
+            np.save(f'{self.dump_path}/results_final/archive_cell_{key}_final',
                     self.state_archive._archive[key]._elements)
-                    
+        np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))
+
     def __call__(self):
         return self._exploration_phase()

@@ -78,6 +78,7 @@ class SimpleReplayBuffer(ReplayBuffer):
         self.add_sample(observation, action, reward, terminal, next_observation, env_info, **kwargs)
 
     def get_transitions(self):
+        import pdb; pdb.set_trace()
         return np.concatenate([
             self._observations[:self._size],
             self._actions[:self._size],
