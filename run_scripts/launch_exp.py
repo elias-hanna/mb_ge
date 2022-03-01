@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
         'dump_rate': dump_rate,
         'nb_of_samples_per_state':10,
-        'dump_all_transitions': False,
+        'dump_all_transitions': True,
     }
     
     if args.dump_path is not None:

@@ -65,7 +65,6 @@ class GoExplore():
                 self.state_archive.add(elem)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and self.dump_all_transitions:
-                print("kakaka")
                 import copy
                 A = []
                 S = []
