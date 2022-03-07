@@ -90,23 +90,49 @@ class GoExplore():
                 path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create, exist_ok=True)
                 self.state_archive.visualize(budget_used, itr=itr)
-                total_num_of_els = sum([len(self.state_archive._archive[key]._elements)])
-                len_desc = len(self.state_archive._archive[key]._elements[0].descriptor)
-                len_params = len(self.state_archive._archive[key]._elements[0].policy_parameters)
-                max_traj_len = max([len(self.state_archive._archive[key]._elements)])
-                descriptors = np.zeros((total_num_of_els, len_desc))
-                prev_descriptors = np.zeros((total_num_of_els, len_desc))
-                params = np.zeros((total_num_of_els, len_params))                
-                count = 0
-                for key in self.state_archive._archive.keys():
-                    for el in self.state_archive._archive[key]._elements:
-                        descriptors[count, :] = copy.copy(el.descriptor)
-                        prev_descriptors[count, :] = copy.copy(el.previous_element.descriptor)
-                        params[count, :] = copy.copy(el.policy_parameters)
-                        count += 1
-                np.savez(f'{self.dump_path}/results_{itr}/descriptors', descriptors)
-                np.savez(f'{self.dump_path}/results_{itr}/prev_descriptors', descriptors)
-                np.savez(f'{self.dump_path}/results_{itr}/params', descriptors)
+                # import pdb; pdb.set_trace()
+                total_num_of_els = 0
+                all_max_len_desc = []
+                all_max_len_params = []
+                all_max_len_traj = []
+                for cell in self.state_archive._archive.values():
+                    total_num_of_els += len(cell._elements)
+                    len_desc_in_cell = []
+                    len_params_in_cell = []
+                    len_traj_in_cell = []
+                    for el in cell._elements:
+                        if el.descriptor!=[] and el.policy_parameters!=[] and el.trajectory!=[]:
+                            len_desc_in_cell.append(len(el.descriptor))
+                            len_params_in_cell.append(len(el.policy_parameters))
+                            len_traj_in_cell.append(len(el.trajectory))
+                    if len_desc_in_cell!=[] and len_params_in_cell!=[] and len_traj_in_cell!=[]:
+                        all_max_len_desc.append(max(len_desc_in_cell))
+                        all_max_len_params.append(max(len_params_in_cell))
+                        all_max_len_traj.append(max(len_traj_in_cell))
+
+                # total_num_of_els = sum([len(cell._elements)
+                                        # for cell in self.state_archive._archive.values()])
+                # len_desc = len(list(self.state_archive._archive.values())[0]._elements[0].descriptor)
+                # len_params = len(list(self.state_archive._archive.values())[0]._elements[0].policy_parameters)
+                # max_traj_len = max([len(list(self.state_archive._archive.values())[0]._elements)])
+                if all_max_len_desc != [] and all_max_len_params != [] and all_max_len_traj != []:
+                    len_desc = max(all_max_len_desc)
+                    len_params = max(all_max_len_params)
+                    len_traj = max(all_max_len_traj)
+                    descriptors = np.zeros((total_num_of_els, len_desc))
+                    prev_descriptors = np.zeros((total_num_of_els, len_desc))
+                    params = np.zeros((total_num_of_els, len_params))                
+                    count = 0
+                    for key in self.state_archive._archive.keys():
+                        for el in self.state_archive._archive[key]._elements:
+                            descriptors[count, :] = copy.copy(el.descriptor)
+                            prev_descriptors[count, :] = copy.copy(el.previous_element.descriptor)
+                            params[count, :] = copy.copy(el.policy_parameters)
+                            count += 1
+                    np.savez(f'{self.dump_path}/results_{itr}/descriptors', descriptors)
+                    np.savez(f'{self.dump_path}/results_{itr}/prev_descriptors', descriptors)
+                    np.savez(f'{self.dump_path}/results_{itr}/params', descriptors)
+
                 # for key in self.state_archive._archive.keys():
                     # np.savez_compressed(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             # self.state_archive._archive[key]._elements)
@@ -114,9 +140,13 @@ class GoExplore():
         path_to_dir_to_create = os.path.join(self.dump_path, f'results_final')
         os.makedirs(path_to_dir_to_create, exist_ok=True)
         self.state_archive.visualize(budget_used, itr='final')
-        for key in self.state_archive._archive.keys():
-            np.savez_compressed(f'{self.dump_path}/results_final/archive_cell_{key}_final',
-                    self.state_archive._archive[key]._elements)
+        np.savez(f'{self.dump_path}/results_{itr}/descriptors', descriptors)
+        np.savez(f'{self.dump_path}/results_{itr}/prev_descriptors', descriptors)
+        np.savez(f'{self.dump_path}/results_{itr}/params', descriptors)
+                
+        # for key in self.state_archive._archive.keys():
+            # np.savez_compressed(f'{self.dump_path}/results_final/archive_cell_{key}_final',
+                    # self.state_archive._archive[key]._elements)
         if len(self.observed_transitions) > 1 and self.dump_all_transitions:
             np.savez_compressed(f'{self.dump_path}/results_final/all_transitions_{self.budget}',
                                 np.array(self.observed_transitions))

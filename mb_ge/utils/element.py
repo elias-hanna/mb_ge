@@ -1,6 +1,6 @@
 class Element():
-    def __init__(self, descriptor=None, trajectory=[], actions=[], reward=0., disagreement=[],
-                 policy_parameters=None, previous_element=None, sim_state=None):
+    def __init__(self, descriptor=[], trajectory=[], actions=[], reward=0., disagreement=[],
+                 policy_parameters=[], previous_element=None, sim_state=None):
         self.descriptor = descriptor
         self.trajectory = trajectory
         self.actions = actions
