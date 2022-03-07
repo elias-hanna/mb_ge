@@ -111,4 +111,5 @@ class ModelBasedGoExplore(GoExplore):
         for key in self.state_archive._archive.keys():
             np.save(f'{self.dump_path}/results_final/archive_cell_{key}_final',
                     self.state_archive._archive[key]._elements)
-        np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))
+        if len(self.observed_transitions) > 1 and self.dump_all_transitions:
+            np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))

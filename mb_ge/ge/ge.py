@@ -1,6 +1,7 @@
 import numpy as np
 from mb_ge.utils.element import Element
 import os
+import copy
 
 class GoExplore():
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
@@ -64,7 +65,6 @@ class GoExplore():
                 self.state_archive.add(elem)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and self.dump_all_transitions:
-                import copy
                 A = []
                 S = []
                 NS = []
@@ -90,17 +90,36 @@ class GoExplore():
                 path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
                 os.makedirs(path_to_dir_to_create, exist_ok=True)
                 self.state_archive.visualize(budget_used, itr=itr)
+                total_num_of_els = sum([len(self.state_archive._archive[key]._elements)])
+                len_desc = len(self.state_archive._archive[key]._elements[0].descriptor)
+                len_params = len(self.state_archive._archive[key]._elements[0].policy_parameters)
+                max_traj_len = max([len(self.state_archive._archive[key]._elements)])
+                descriptors = np.zeros((total_num_of_els, len_desc))
+                prev_descriptors = np.zeros((total_num_of_els, len_desc))
+                params = np.zeros((total_num_of_els, len_params))                
+                count = 0
                 for key in self.state_archive._archive.keys():
-                    np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
-                            self.state_archive._archive[key]._elements)
+                    for el in self.state_archive._archive[key]._elements:
+                        descriptors[count, :] = copy.copy(el.descriptor)
+                        prev_descriptors[count, :] = copy.copy(el.previous_element.descriptor)
+                        params[count, :] = copy.copy(el.policy_parameters)
+                        count += 1
+                np.savez(f'{self.dump_path}/results_{itr}/descriptors', descriptors)
+                np.savez(f'{self.dump_path}/results_{itr}/prev_descriptors', descriptors)
+                np.savez(f'{self.dump_path}/results_{itr}/params', descriptors)
+                # for key in self.state_archive._archive.keys():
+                    # np.savez_compressed(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
+                            # self.state_archive._archive[key]._elements)
 
         path_to_dir_to_create = os.path.join(self.dump_path, f'results_final')
         os.makedirs(path_to_dir_to_create, exist_ok=True)
         self.state_archive.visualize(budget_used, itr='final')
         for key in self.state_archive._archive.keys():
-            np.save(f'{self.dump_path}/results_final/archive_cell_{key}_final',
+            np.savez_compressed(f'{self.dump_path}/results_final/archive_cell_{key}_final',
                     self.state_archive._archive[key]._elements)
-        np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))
+        if len(self.observed_transitions) > 1 and self.dump_all_transitions:
+            np.savez_compressed(f'{self.dump_path}/results_final/all_transitions_{self.budget}',
+                                np.array(self.observed_transitions))
 
     def __call__(self):
         return self._exploration_phase()
