@@ -101,7 +101,8 @@ class GoExplore():
                     len_params_in_cell = []
                     len_traj_in_cell = []
                     for el in cell._elements:
-                        if el.descriptor!=[] and el.policy_parameters!=[] and el.trajectory!=[]:
+                        if el.descriptor is not None and el.policy_parameters is not None \
+                        and el.trajectory is not None:
                             len_desc_in_cell.append(len(el.descriptor))
                             len_params_in_cell.append(len(el.policy_parameters))
                             len_traj_in_cell.append(len(el.trajectory))
@@ -126,7 +127,10 @@ class GoExplore():
                     for key in self.state_archive._archive.keys():
                         for el in self.state_archive._archive[key]._elements:
                             descriptors[count, :] = copy.copy(el.descriptor)
-                            prev_descriptors[count, :] = copy.copy(el.previous_element.descriptor)
+                            if el.previous_element is not None:
+                                prev_descriptors[count, :] = copy.copy(el.previous_element.descriptor)
+                            else:
+                                prev_descriptors[count, :] = copy.copy(el.descriptor)
                             params[count, :] = copy.copy(el.policy_parameters)
                             count += 1
                     np.savez(f'{self.dump_path}/results_{itr}/descriptors', descriptors)
