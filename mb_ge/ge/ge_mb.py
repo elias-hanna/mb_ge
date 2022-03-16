@@ -40,18 +40,27 @@ class ModelBasedGoExplore(GoExplore):
                             sim_state={'qpos': self.gym_env.sim.data.qpos,
                                        'qvel': self.gym_env.sim.data.qvel})
         self.state_archive.add(init_elem)
-
+        itr = 0
         budget_used = 0
         i_budget_used = 0
         done = False
-        itr = 0
-        h_max = 40
-        h_min = 10
-        self.h_exploration = h_min
+
+        # Variable horizon variables
+        if self._use_variable_model_horizon:
+            e = 0
+            x = self._min_horizon
+            y = self._max_horizon
+            
+            a = self._horizon_starting_epoch
+            b = self._horizon_ending_epoch
+        
         while budget_used < self.budget and not done:
             ## Update horizon length
-            self.h_exploration = int(max(h_min,
-                                     np.floor((budget_used/self.budget)*(h_max-h_min)+h_min)))
+            if self._use_variable_model_horizon:
+                self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(x - y), x), y))
+            # self.h_exploration = int(max(h_min,
+                                     # np.floor((budget_used/self.budget)*(h_max-h_min)+h_min)))
+
             ## Reset environment
             obs = self.gym_env.reset()
             # Select a state to return from the archive
@@ -70,24 +79,8 @@ class ModelBasedGoExplore(GoExplore):
             self.state_archive.add(sel_i_el)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and self.dump_all_transitions:
-                import copy
-                A = []
-                S = []
-                NS = []
-                for i in range(len(transitions) - 1):
-                    A.append(copy.copy(transitions[i][0]))
-                    S.append(copy.copy(transitions[i][1]))
-                    NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
-                A = np.array(A)
-                S = np.array(S)
-                NS = np.array(NS)
-                new_trs = np.concatenate([S, A, NS], axis=1)
-                tmp = np.zeros((len(new_trs)+len(self.observed_transitions), new_trs.shape[1]))
-                if len(self.observed_transitions) > 0:
-                    tmp[0:len(self.observed_transitions)] = self.observed_transitions
-                tmp[len(self.observed_transitions):
-                    len(self.observed_transitions) + len(new_trs)] = new_trs
-                self.observed_transitions = np.unique(tmp, axis=0)
+                self.append_new_transitions(transitions)
+
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used
@@ -97,19 +90,11 @@ class ModelBasedGoExplore(GoExplore):
             self._dynamics_model.add_samples_from_transitions(transitions)
             if itr % self.model_update_rate == 0:
                 self._dynamics_model.train()
+                e += 1
             if itr % self.dump_rate == 0:
-                path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
-                os.makedirs(path_to_dir_to_create, exist_ok=True)
-                self.state_archive.visualize(budget_used, itr=itr)
-                for key in self.state_archive._archive.keys():
-                    np.save(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
-                            self.state_archive._archive[key]._elements)
+                self.state_archive.dump_archive(self.dump_path, budget_used, itr)
 
-        path_to_dir_to_create = os.path.join(self.dump_path, f'results_final')
-        os.makedirs(path_to_dir_to_create, exist_ok=True)
-        self.state_archive.visualize(budget_used, itr='final')
-        for key in self.state_archive._archive.keys():
-            np.save(f'{self.dump_path}/results_final/archive_cell_{key}_final',
-                    self.state_archive._archive[key]._elements)
+        self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
+
         if len(self.observed_transitions) > 1 and self.dump_all_transitions:
             np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))

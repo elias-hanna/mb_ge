@@ -33,6 +33,30 @@ class GoExplore():
             self.dump_rate = params['dump_rate']
         else:
             self.dump_rate = 100
+        if 'use_variable_model_horizon' in params:
+            self._use_variable_model_horizon = params['use_variable_model_horizon']
+            if self._use_variable_model_horizon:
+                if 'min_horizon' in params:
+                    self._min_horizon = params['min_horizon']
+                else:
+                    raise Exception('GoExplore _process_params error: min_horizon not in params')
+                if 'max_horizon' in params:
+                    self._max_horizon = params['max_horizon']
+                else:
+                    raise Exception('GoExplore _process_params error: max_horizon not in params')
+                if 'horizon_starting_epoch' in params:
+                    self._horizon_starting_epoch = params['horizon_starting_epoch']
+                else:
+                    raise Exception('GoExplore _process_params error: horizon_starting_epoch not in params')
+                if 'horizon_ending_epoch' in params:
+                    self._horizon_ending_epoch = params['horizon_ending_epoch']
+                else:
+                    raise Exception('GoExplore _process_params error: horizon_ending_epoch not in params')
+                if 'model_update_rate' in params:
+                    self.model_update_rate = params['model_update_rate']
+                else:
+                    self.model_update_rate = 10
+                
         if 'dump_path' in params:
             self.dump_path = params['dump_path']
         else:
@@ -40,6 +64,24 @@ class GoExplore():
             curr_dir = os.getcwd()
             self.dump_path = curr_dir
             
+    def append_new_transitions(self, transitions):
+        A = []
+        S = []
+        NS = []
+        for i in range(len(transitions) - 1):
+            A.append(copy.copy(transitions[i][0]))
+            S.append(copy.copy(transitions[i][1]))
+            NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
+        A = np.array(A)
+        S = np.array(S)
+        NS = np.array(NS)
+        new_trs = np.concatenate([S, A, NS], axis=1)
+        tmp = np.zeros((len(new_trs)+len(self.observed_transitions), new_trs.shape[1]))
+        if len(self.observed_transitions) > 0:
+            tmp[0:len(self.observed_transitions)] = self.observed_transitions
+        tmp[len(self.observed_transitions):len(self.observed_transitions) + len(new_trs)] = new_trs
+        self.observed_transitions = np.unique(tmp, axis=0)
+                
     def _exploration_phase(self):
         ## reset gym environment
         obs = self.gym_env.reset()
@@ -51,7 +93,22 @@ class GoExplore():
         itr = 0
         budget_used = 0
         done = False
+
+        # Variable horizon variables
+        if self._use_variable_model_horizon:
+            e = 0
+            x = self._min_horizon
+            y = self._max_horizon
+            
+            a = self._horizon_starting_epoch
+            b = self._horizon_ending_epoch
+        
         while budget_used < self.budget and not done:
+            ## Update horizon length
+            if self._use_variable_model_horizon:
+                self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(x - y), x), y))
+
+            ## Reset environment
             obs = self.gym_env.reset()
             ## Select a state to return from the archive
             el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
@@ -65,27 +122,16 @@ class GoExplore():
                 self.state_archive.add(elem)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and self.dump_all_transitions:
-                A = []
-                S = []
-                NS = []
-                for i in range(len(transitions) - 1):
-                    A.append(copy.copy(transitions[i][0]))
-                    S.append(copy.copy(transitions[i][1]))
-                    NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
-                A = np.array(A)
-                S = np.array(S)
-                NS = np.array(NS)
-                new_trs = np.concatenate([S, A, NS], axis=1)
-                tmp = np.zeros((len(new_trs)+len(self.observed_transitions), new_trs.shape[1]))
-                if len(self.observed_transitions) > 0:
-                    tmp[0:len(self.observed_transitions)] = self.observed_transitions
-                tmp[len(self.observed_transitions):
-                    len(self.observed_transitions) + len(new_trs)] = new_trs
-                self.observed_transitions = np.unique(tmp, axis=0)
+                self.append_new_transitions(transitions)
+
             ## Update used budget
             budget_used += b_used
             itr += 1
             print(f'b_used: {budget_used} | total_b: {self.budget}')
+            if self._use_variable_model_horizon:
+                if itr % self.model_update_rate == 0:
+                    e += 1
+                    print("pouet pouet")
             if itr%self.dump_rate == 0:
                 self.state_archive.dump_archive(self.dump_path, budget_used, itr)
                 

@@ -24,6 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('--budget', type=int, default=100000)
     parser.add_argument('--dump-path', type=str)
     parser.add_argument('--dump-rate', type=int)
+    parser.add_argument('--variable-horizon', action='store_true')
 
     args = parser.parse_args()
 
@@ -61,6 +62,10 @@ if __name__ == '__main__':
     dump_rate = 50
     if args.dump_rate is not None:
         dump_rate = args.dump_rate
+
+    use_variable_horizon = args.variable_horizon
+    # if args.variable_horizon is not None:
+        # use_variable_horizon = True
         
     controller_params = \
     {
@@ -103,6 +108,12 @@ if __name__ == '__main__':
         'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
 
+        'use_variable_model_horizon': use_variable_horizon,
+        'min_horizon': 1,
+        'max_horizon': 25,
+        'horizon_starting_epoch': 20,
+        'horizon_ending_epoch': 100,
+        
         'dump_rate': dump_rate,
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
