@@ -92,12 +92,14 @@ class ModelBasedGoExplore(GoExplore):
             unique_trs_observed = len(self.observed_transitions)
             itr += 1
 
-            # Verbose
-            to_print = f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
             # Train the dynamics model
             self._dynamics_model.add_samples_from_transitions(transitions)
             if itr % self.model_update_rate == 0:
                 self._dynamics_model.train()
+                
+            # Verbose
+            to_print = f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
+            
             # Update exploration horizon
             if self._use_variable_model_horizon:
                 if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
@@ -115,8 +117,10 @@ class ModelBasedGoExplore(GoExplore):
             # Dump data
             if itr % self.dump_rate == 0:
                 self.state_archive.dump_archive(self.dump_path, budget_used, itr)
-            
+
+            # Actually print
             print(to_print)
+
         self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
 
         if len(self.observed_transitions) > 1 and self.dump_all_transitions:

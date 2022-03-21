@@ -142,7 +142,10 @@ class GoExplore():
             budget_used += b_used
             unique_trs_observed = len(self.observed_transitions)
             itr += 1
-            print(f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} | current_epoch: {e} | unique_trs_observed: {unique_trs_observed}')
+            
+            # Verbose
+            to_print = f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
+            
             # Update exploration horizon
             if self._use_variable_model_horizon:
                 if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
@@ -150,14 +153,20 @@ class GoExplore():
                 elif self.epoch_mode == 'fixed_steps' and budget_used >= next_target_budget:
                     e += 1
                     next_target_budget += self.steps_per_epoch
-                elif self.epoch_mode == 'unique_fixed_steps' \
-                     and unique_trs_observed >= next_target_budget:
-                    e += 1
-                    next_target_budget += self.steps_per_epoch
+                elif self.epoch_mode == 'unique_fixed_steps':
+                    to_print += f'| unique_trs_observed: {unique_trs_observed} '
+                    if unique_trs_observed >= next_target_budget:
+                        e += 1
+                        next_target_budget += self.steps_per_epoch
+                to_print += f'| current_epoch: {e}'
+
             # Dump data
             if itr%self.dump_rate == 0:
                 self.state_archive.dump_archive(self.dump_path, budget_used, itr)
-                
+
+            # Actually print
+            print(to_print)
+
         self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
 
         if len(self.observed_transitions) > 1 and self.dump_all_transitions:
