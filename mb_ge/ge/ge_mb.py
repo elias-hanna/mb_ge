@@ -53,13 +53,17 @@ class ModelBasedGoExplore(GoExplore):
             
             a = self._horizon_starting_epoch
             b = self._horizon_ending_epoch
-        
+            next_target_budget = self.steps_per_epoch
+
         while budget_used < self.budget and not done:
             ## Update horizon length
             if self._use_variable_model_horizon:
-                self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(x - y), x), y))
-            # self.h_exploration = int(max(h_min,
-                                     # np.floor((budget_used/self.budget)*(h_max-h_min)+h_min)))
+                if e >= a: # normal case
+                    self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(y - x), x), y))
+                elif e < a:
+                    self.h_exploration = x
+                elif e > b:
+                    self.h_exploration = y
 
             ## Reset environment
             obs = self.gym_env.reset()
@@ -78,19 +82,32 @@ class ModelBasedGoExplore(GoExplore):
             # Update archive and other datasets
             self.state_archive.add(sel_i_el)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
-            if len(transitions) > 1 and self.dump_all_transitions:
+            if len(transitions) > 1 and (self.dump_all_transitions
+                                         or self.epoch_mode == "unique_fixed_steps"):
                 self.append_new_transitions(transitions)
 
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used
+            unique_trs_observed = len(self.observed_transitions)
             itr += 1
-            print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_model_horizon: {self.h_exploration}')
+            print(f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} | current_epoch: {e} | unique_trs_observed: {unique_trs_observed}')
             # Train the dynamics model
             self._dynamics_model.add_samples_from_transitions(transitions)
             if itr % self.model_update_rate == 0:
                 self._dynamics_model.train()
-                e += 1
+            # Update exploration horizon
+            if self._use_variable_model_horizon:
+                if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
+                    e += 1
+                elif self.epoch_mode == 'fixed_steps' and budget_used >= next_target_budget:
+                    e += 1
+                    next_target_budget += self.steps_per_epoch
+                elif self.epoch_mode == 'unique_fixed_steps' \
+                     and unique_trs_observed >= next_target_budget:
+                    e += 1
+                    next_target_budget += self.steps_per_epoch
+            # Dump data
             if itr % self.dump_rate == 0:
                 self.state_archive.dump_archive(self.dump_path, budget_used, itr)
 

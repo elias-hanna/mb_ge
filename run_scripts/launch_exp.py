@@ -21,10 +21,12 @@ if __name__ == '__main__':
     parser.add_argument('--cell-selection', type=str, default='random')
     parser.add_argument('--transfer-selection', type=str, default='random')
     parser.add_argument('--exploration', type=str, default='random')
+    # parser.add_argument('--epoch-mode', type=str, default='model_update')
     parser.add_argument('--budget', type=int, default=100000)
     parser.add_argument('--dump-path', type=str)
     parser.add_argument('--dump-rate', type=int)
-    parser.add_argument('--variable-horizon', action='store_true')
+    # parser.add_argument('--variable-horizon', action='store_true')
+    parser.add_argument('--variable-horizon', type=str)#, default='model_update')
 
     args = parser.parse_args()
 
@@ -54,6 +56,23 @@ if __name__ == '__main__':
             exploration_method = RandomExploration
         if args.exploration == 'ns':
             exploration_method = NoveltySearchExploration
+
+    epoch_mode = "model_update"
+    # if args.epoch_mode is not None:
+    #     if args.epoch_mode == 'model_update':
+    #         epoch_mode = 'model_update'
+    #     if args.epoch_mode == 'fixed_steps':
+    #         epoch_mode = 'fixed_steps'
+    #     if args.epoch_mode == 'unique_fixed_steps':
+    #         epoch_mode = 'unique_fixed_steps'
+    if args.variable_horizon is not None:
+        use_variable_horizon = True
+        if args.variable_horizon == 'model_update':
+            epoch_mode = 'model_update'
+        if args.variable_horizon == 'fixed_steps':
+            epoch_mode = 'fixed_steps'
+        if args.variable_horizon == 'unique_fixed_steps':
+            epoch_mode = 'unique_fixed_steps'
 
     budget = 100000
     if args.budget is not None:
@@ -108,6 +127,8 @@ if __name__ == '__main__':
         'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
 
+        'epoch_mode': epoch_mode,
+        'steps_per_epoch': 1000,
         'use_variable_model_horizon': use_variable_horizon,
         'min_horizon': 1,
         'max_horizon': 25,

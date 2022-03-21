@@ -56,7 +56,14 @@ class GoExplore():
                     self.model_update_rate = params['model_update_rate']
                 else:
                     self.model_update_rate = 10
-                
+                if 'steps_per_epoch' in params:
+                    self.steps_per_epoch = params['steps_per_epoch']
+                else:
+                    self.steps_per_epoch = 1000
+        if 'epoch_mode' in params:
+                    self.epoch_mode = params['epoch_mode']
+        else:
+            self.epoch_mode = 'None'
         if 'dump_path' in params:
             self.dump_path = params['dump_path']
         else:
@@ -102,13 +109,17 @@ class GoExplore():
             
             a = self._horizon_starting_epoch
             b = self._horizon_ending_epoch
-        
+            next_target_budget = self.steps_per_epoch
+            
         while budget_used < self.budget and not done:
             ## Update horizon length
             if self._use_variable_model_horizon:
-                c = x + ((e - a)/(b - a))*(x - y)
-                import pdb; pdb.set_trace()
-                self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(x - y), x), y))
+                if e >= a: # normal case
+                    self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(y - x), x), y))
+                elif e < a:
+                    self.h_exploration = x
+                elif e > b:
+                    self.h_exploration = y
 
             ## Reset environment
             obs = self.gym_env.reset()
@@ -123,17 +134,27 @@ class GoExplore():
             for elem in elements:
                 self.state_archive.add(elem)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
-            if len(transitions) > 1 and self.dump_all_transitions:
+            if len(transitions) > 1 and (self.dump_all_transitions
+                                         or self.epoch_mode == "unique_fixed_steps"):
                 self.append_new_transitions(transitions)
 
             ## Update used budget
             budget_used += b_used
+            unique_trs_observed = len(self.observed_transitions)
             itr += 1
-            print(f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration}')
+            print(f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} | current_epoch: {e} | unique_trs_observed: {unique_trs_observed}')
+            # Update exploration horizon
             if self._use_variable_model_horizon:
-                if itr % self.model_update_rate == 0:
+                if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
                     e += 1
-                    print("pouet pouet")
+                elif self.epoch_mode == 'fixed_steps' and budget_used >= next_target_budget:
+                    e += 1
+                    next_target_budget += self.steps_per_epoch
+                elif self.epoch_mode == 'unique_fixed_steps' \
+                     and unique_trs_observed >= next_target_budget:
+                    e += 1
+                    next_target_budget += self.steps_per_epoch
+            # Dump data
             if itr%self.dump_rate == 0:
                 self.state_archive.dump_archive(self.dump_path, budget_used, itr)
                 
