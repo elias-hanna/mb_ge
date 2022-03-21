@@ -106,6 +106,8 @@ class GoExplore():
         while budget_used < self.budget and not done:
             ## Update horizon length
             if self._use_variable_model_horizon:
+                c = x + ((e - a)/(b - a))*(x - y)
+                import pdb; pdb.set_trace()
                 self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(x - y), x), y))
 
             ## Reset environment
@@ -127,7 +129,7 @@ class GoExplore():
             ## Update used budget
             budget_used += b_used
             itr += 1
-            print(f'b_used: {budget_used} | total_b: {self.budget}')
+            print(f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration}')
             if self._use_variable_model_horizon:
                 if itr % self.model_update_rate == 0:
                     e += 1
