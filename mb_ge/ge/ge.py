@@ -144,7 +144,7 @@ class GoExplore():
             itr += 1
             
             # Verbose
-            to_print = f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
+            to_print = f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
             
             # Update exploration horizon
             if self._use_variable_model_horizon:
