@@ -1,6 +1,42 @@
+# Data manipulation includes
+import numpy as np
+
 import sys
 from mb_ge.models.dynamics_models import DynamicsModel
+from mbn
 
+def load_archive_data(folder_path):
+    descriptors = np.load('descriptors.npz')['arr_0']
+    prev_descriptors = np.load('prev_descriptors.npz')['arr_0']
+    params = np.load('params.npz')['arr_0']
+
+    return params, descriptors, prev_descriptors
+
+def reconstruct_elements(params, descriptors, prev_descriptors):
+    assert len(params) == len(descriptors) == len(prev_descriptors)
+    nb_of_elems = len(params)
+    elements = []
+    current_ends = []
+    init_elem = Element(policy_parameters=params[0], descriptor=descriptors[0])
+    current_ends.append(init_elem)
+    elements.append(init_elem)
+    
+    while len(elements) != nb_of_elems:
+        for end in current_ends:
+            next_elems_indexes = np.unique(np.where(prev_descriptors == end.descriptor)[0])
+            for next_elem_index in next_elems_indexes:
+                ## Skip the init elem
+                if next_elem_index == 0:
+                    continue
+                elem = Element(policy_parameters=params[next_elem_index],
+                               descriptor=descriptor[next_elem_index],
+                               previous_element=end)
+                elements.append(elem)
+                current_ends.append(elem)
+            current_ends.pop(0)
+
+    return elements
+    
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
