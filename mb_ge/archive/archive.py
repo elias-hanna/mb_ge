@@ -74,7 +74,8 @@ class Archive():
             len_traj = max(all_max_len_traj)
             descriptors = np.zeros((total_num_of_els, len_desc))
             prev_descriptors = np.zeros((total_num_of_els, len_desc))
-            params = np.zeros((total_num_of_els, len_params))                
+            params = np.zeros((total_num_of_els, len_params))
+            policy_horizon = np.zeros((total_num_of_els))
             count = 0
             for key in self._archive.keys():
                 for el in self._archive[key]._elements:
@@ -85,11 +86,12 @@ class Archive():
                     else:
                         prev_descriptors[count, :] = copy.copy(el.descriptor)
                     params[count, :] = copy.copy(el.policy_parameters)
+                    policy_horizon[count] = len(el.trajectory)
                     count += 1
             np.savez(f'{dump_path}/results_{itr}/descriptors', descriptors)
             np.savez(f'{dump_path}/results_{itr}/prev_descriptors', prev_descriptors)
             np.savez(f'{dump_path}/results_{itr}/params', params)
-
+            np.savez(f'{dump_path}/results_{itr}/policy_horizon', policy_horizon)
                 # for key in self.state_archive._archive.keys():
                     # np.savez_compressed(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             # self.state_archive._archive[key]._elements)
