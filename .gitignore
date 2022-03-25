@@ -9,4 +9,5 @@ data/
 *#*
 */__pycache__/*
 *pycache*
-analysis/results
+analysis/*
+!analysis/model_analysis.py

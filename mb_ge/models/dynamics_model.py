@@ -132,12 +132,16 @@ class DynamicsModel():
         S = []
         NS = []
         for el in elements:
-            prev_state = el.prev_element.trajectory[-1]
-            for a, s in zip(el.actions, el.trajectory):
-                ns = s - prev_state
-                A.append(copy.copy(a))
-                S.append(copy.copy(s))
-                NS.append(copy.copy(ns))
+            # prev_state = el.prev_element.trajectory[-1]
+            # for a, s in zip(el.actions, el.trajectory):
+            #     ns = s - prev_state
+            #     A.append(copy.copy(a))
+            #     S.append(copy.copy(s))
+            #     NS.append(copy.copy(ns))
+            for i in range(len(el.trajectory) - 1):
+                A.append(copy.copy(el.actions[i]))
+                S.append(copy.copy(el.trajectory[i]))
+                NS.append(copy.copy(el.trajectory[i+1])
         self.add_samples(S, A, NS)
 
     def add_samples_from_transitions(self, transitions):
@@ -147,7 +151,8 @@ class DynamicsModel():
         for i in range(len(transitions) - 1):
             A.append(copy.copy(transitions[i][0]))
             S.append(copy.copy(transitions[i][1]))
-            NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
+            # NS.append(copy.copy(transitions[i+1][1] - transitions[i][1]))
+            NS.append(copy.copy(transitions[i+1][1]))
         self.add_samples(S, A, NS)
         
     def add_samples(self, S, A, NS):
