@@ -85,6 +85,9 @@ if __name__ == '__main__':
     use_variable_horizon = args.variable_horizon
     # if args.variable_horizon is not None:
         # use_variable_horizon = True
+
+    ## Framework methods
+    env = gym.make('BallInCup3d-v0')
         
     controller_params = \
     {
@@ -112,7 +115,7 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': budget,
-        'exploration_horizon': 10,
+        'exploration_horizon': 100,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
 
@@ -138,13 +141,11 @@ if __name__ == '__main__':
         'dump_rate': dump_rate,
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
+        'env_max_h': env.max_steps,
     }
     
     if args.dump_path is not None:
         params['dump_path'] = args.dump_path    
-
-    ## Framework methods
-    env = gym.make('BallInCup3d-v0')
 
     go_method = ExecutePolicyGo
 

@@ -5,7 +5,18 @@ class SelectionMethod():
         self._process_params(params)
 
     def _process_params(self, params):
-        pass
+        if 'env_max_h' in params:
+            self._env_max_h = params['env_max_h']
+        else:
+            raise Exception('SelectionMethod _process_params error: env_max_h not in params')
+
+    def _horizon_check(self, el):
+        traj_len = len(el.trajectory)
+        prev_el = el.previous_element
+        while prev_el != None:
+            traj_len += len(prev_el.trajectory)
+            prev_el = prev_el.previous_element
+        return (traj_len < self._env_max_h)
     
     @abstractmethod
     def select_element_from_cell_archive(self, archive):

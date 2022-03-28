@@ -278,7 +278,7 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': 1000000,
-        'exploration_horizon': 10,
+        'exploration_horizon': 100,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
 
@@ -305,7 +305,6 @@ if __name__ == '__main__':
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
     }
-
     rep_dirs = next(os.walk(folderpath))[1]
 
     number_of_reps = len(rep_dirs)
@@ -329,8 +328,9 @@ if __name__ == '__main__':
     # Create multiprocessing pool
     pool = multiprocessing.Pool(multiprocessing.cpu_count()-1)
 
+    import pdb; pdb.set_trace()
     results = pool.map(compute_coverage_and_reward_for_rep, [rep_dir for rep_dir in rep_dirs])
-    
+
     for rep_res in results:
         coverage_vals[curr_rep, :len(rep_res[0])] = rep_res[0]
         rewarding_pis_vals[curr_rep, :len(rep_res[1])] = rep_res[1]
@@ -386,7 +386,7 @@ if __name__ == '__main__':
     #         ## Increment
     #         curr_iter += 1
     #     curr_rep += 1
-
+    import pdb; pdb.set_trace()
     coverage_mean = np.nanmean(coverage_vals, axis = 0)
     reward_mean = np.nanmean(rewarding_pis_vals, axis = 0)
 

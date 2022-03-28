@@ -85,7 +85,7 @@ class ModelBasedGoExplore(GoExplore):
             if len(transitions) > 1 and (self.dump_all_transitions
                                          or self.epoch_mode == "unique_fixed_steps"):
                 self.append_new_transitions(transitions)
-
+            print(b_used)
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used

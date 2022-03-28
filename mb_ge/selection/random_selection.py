@@ -5,8 +5,18 @@ from mb_ge.selection.selection import SelectionMethod
 
 class RandomSelection(SelectionMethod):
     def select_element_from_cell_archive(self, archive):
-        selected_cell = random.choice(list(archive._archive.values()))
-        return self.select_element_from_element_list(selected_cell._elements)
+        # selected_cell = random.choice(list(archive._archive.values()))
+        # return self.select_element_from_element_list(selected_cell._elements)
+        cell_list = list(archive._archive.values())
+        selected_cell_list = random.choices(cell_list, k=len(cell_list))
+        for selected_cell in selected_cell_list:
+            el_list = selected_cell._elements
+            selected_element_list = self.select_element_from_element_list(el_list,
+                                                                          len(el_list))
+            for selected_element in selected_element_list:
+                if self._horizon_check(selected_element):
+                    return selected_element
+        return None
     
-    def select_element_from_element_list(self, elements):
-        return random.choice(elements)
+    def select_element_from_element_list(self, elements, num_of_els):
+        return random.choices(elements, k=num_of_els)

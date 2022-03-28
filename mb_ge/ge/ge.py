@@ -127,9 +127,10 @@ class GoExplore():
             el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
             ## Go back to the selected state
             transitions, b_used = self._go_method.go(self.gym_env, el)
-            budget_used += b_used
             ## Explore from the selected state
-            elements, b_used = self._exploration_method(self.gym_env, el, self.h_exploration)
+            elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
+            b_used += b_used_expl
+            print(b_used)
             ## Update archive and other datasets
             for elem in elements:
                 self.state_archive.add(elem)

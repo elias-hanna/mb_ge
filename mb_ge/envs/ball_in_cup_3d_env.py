@@ -12,7 +12,7 @@ total_rew_seen = 0
 
 class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self, relative_obs=True, dense=False, random_init=False, verbose=False):
-        self.max_steps = 200
+        self.max_steps = 300
         self.steps = 0
         self.dense = dense
         self.random_init = random_init

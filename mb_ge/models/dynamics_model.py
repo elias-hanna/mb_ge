@@ -141,7 +141,7 @@ class DynamicsModel():
             for i in range(len(el.trajectory) - 1):
                 A.append(copy.copy(el.actions[i]))
                 S.append(copy.copy(el.trajectory[i]))
-                NS.append(copy.copy(el.trajectory[i+1])
+                NS.append(copy.copy(el.trajectory[i+1]))
         self.add_samples(S, A, NS)
 
     def add_samples_from_transitions(self, transitions):
