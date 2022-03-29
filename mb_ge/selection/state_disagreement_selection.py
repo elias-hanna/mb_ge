@@ -31,16 +31,26 @@ class StateDisagreementSelection(SelectionMethod):
             raise Exception('StateDisagreementSelection _process_params error: action_dim not in params')
         
     def select_element_from_cell_archive(self, archive):
-        most_disagreed_elements = []
-        for cell in archive._archive.values():
-            most_disagreed_elements.append(self.select_element_from_element_list(cell._elements))
-        return self.select_element_from_element_list(most_disagreed_elements)
+        # most_disagreed_elements = []
+        # for cell in archive._archive.values():
+        #     most_disagreed_elements.append(self.select_element_from_element_list(cell._elements))
+        # return self.select_element_from_element_list(most_disagreed_elements)
     
+        all_elements = []
+        for cell in archive._archive.values():
+            all_elements += cell._elements
+        all_elements_ordered = self.get_ordered_element_list(all_elements)
+        import pdb; pdb.set_trace()
+        for selected_element in all_elements_ordered:
+            if self._horizon_check(selected_element):
+                return selected_element
+        return None
+        
     def select_element_from_element_list(self, elements):
         most_disagreed_element = None
         max_disagr = None
-        if len(elements) == 1:
-            return elements[0]
+        # if len(elements) == 1:
+            # return [elements[0]]
         for element in elements:
             last_obs = element.trajectory[-1]
             mean_disagreements = []
@@ -61,3 +71,26 @@ class StateDisagreementSelection(SelectionMethod):
                 most_disagreed_element = element
                 max_disagr = mean_disagr
         return most_disagreed_element
+
+    def get_ordered_element_list(self, elements):
+        disagrs = []
+        els = []
+        # if len(elements) == 1:
+            # return elements[0]
+        for element in elements:
+            last_obs = element.trajectory[-1]
+            mean_disagreements = []
+            for _ in range(self.nb_of_samples_per_state):
+                action = np.random.uniform(low=-1, high=1, size=self._action_dim)
+                _, disagreement = self._model.forward(action, last_obs, mean=True, disagr=True)
+                mean_disagreements.append(disagreement)
+            if mean_disagreements == [] or mean_disagreements[0] == []:
+                continue
+            mean_disagr = np.mean([np.mean(disagr.detach().numpy())
+                                   for disagr in mean_disagreements])
+            disagrs.append(mean_disagr)
+            els.append(element)
+
+        elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
+        import pdb; pdb.set_trace()
+        return elements_ordered
