@@ -76,17 +76,17 @@ class ModelBasedGoExplore(GoExplore):
                                                             self.h_exploration, eval_on_model=True)
             # Select a state to go to from states found in imagination
             sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
-            # Go back to the selected state
+            # Go to the selected state on real system
             transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
             # Correct sel_i_el to have the right trajectory
             self._correct_el(sel_i_el, transitions)
+            
             # Update archive and other datasets
             self.state_archive.add(sel_i_el)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and (self.dump_all_transitions
                                          or self.epoch_mode == "unique_fixed_steps"):
                 self.append_new_transitions(transitions)
-            print(b_used)
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used

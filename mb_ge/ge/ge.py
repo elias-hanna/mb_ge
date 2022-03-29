@@ -127,19 +127,40 @@ class GoExplore():
                 elif e > b:
                     self.h_exploration = y
 
+            b_used = 0
+            ### OLD WAY closer to GE ###
+            # ## Reset environment
+            # obs = self.gym_env.reset()
+            # ## Select a state to return from the archive
+            # el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
+            # ## Go back to the selected state
+            # ## Restore simulator state
+            # transitions, b_used = self._go_method.go(self.gym_env, el)
+            # ## Explore from the selected state
+            # elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
+            # b_used += b_used_expl
+
+            ## Update archive and other datasets
+            # for elem in elements:
+                # self.state_archive.add(elem)
+                
             ## Reset environment
             obs = self.gym_env.reset()
-            ## Select a state to return from the archive
+            ## Select a state to return to from the archive
             el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
-            ## Go back to the selected state
-            transitions, b_used = self._go_method.go(self.gym_env, el)
+            transitions, sel_el_go_b = self._go_method.go(self.gym_env, el)
             ## Explore from the selected state
             elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
-            b_used += b_used_expl
-            print(b_used)
+            # import pdb; pdb.set_trace()
+            b_used += (sel_el_go_b)*len(elements) + b_used_expl
+            
+            # Select a state to add to archive from the exploration elements
+            sel_els = self._cell_selection_method.select_element_from_element_list(elements, 1)
+            
             ## Update archive and other datasets
-            for elem in elements:
-                self.state_archive.add(elem)
+            for sel_el in sel_els:
+                self.state_archive.add(sel_el)
+            
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and (self.dump_all_transitions
                                          or self.epoch_mode == "unique_fixed_steps"):
