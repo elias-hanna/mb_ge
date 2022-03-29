@@ -40,7 +40,6 @@ class StateDisagreementSelection(SelectionMethod):
         for cell in archive._archive.values():
             all_elements += cell._elements
         all_elements_ordered = self.get_ordered_element_list(all_elements)
-        import pdb; pdb.set_trace()
         for selected_element in all_elements_ordered:
             if self._horizon_check(selected_element):
                 return selected_element
@@ -92,5 +91,4 @@ class StateDisagreementSelection(SelectionMethod):
             els.append(element)
 
         elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
-        import pdb; pdb.set_trace()
         return elements_ordered
