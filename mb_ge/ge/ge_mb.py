@@ -45,6 +45,8 @@ class ModelBasedGoExplore(GoExplore):
         i_budget_used = 0
         done = False
 
+        budget_dump_cpt = 0
+
         # Variable horizon variables
         if self._use_variable_model_horizon:
             e = 0
@@ -69,7 +71,6 @@ class ModelBasedGoExplore(GoExplore):
             obs = self.gym_env.reset()
             # Select a state to return from the archive
             el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
-            # import pdb; pdb.set_trace()
             # Go to and Explore in imagination from the selected state
             i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
                                                             self.h_exploration, eval_on_model=True)
@@ -115,9 +116,13 @@ class ModelBasedGoExplore(GoExplore):
                 to_print += f'| current_epoch: {e}'
 
             # Dump data
-            if itr % self.dump_rate == 0:
-                self.state_archive.dump_archive(self.dump_path, budget_used, itr)
-
+            # if itr % self.dump_rate == 0:
+                # self.state_archive.dump_archive(self.dump_path, budget_used, itr)
+            if budget_used >= self._dump_checkpoints[budget_dump_cpt]:
+                self.state_archive.dump_archive(self.dump_path, budget_used,
+                                                self._dump_checkpoints[budget_dump_cpt])
+                budget_dump_cpt += 1
+                
             # Actually print
             print(to_print)
 

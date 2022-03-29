@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--dump-path', type=str)
     parser.add_argument('--dump-rate', type=int)
     # parser.add_argument('--variable-horizon', action='store_true')
+    # parser.add_argument('--variable-horizon', action='store_true')
     parser.add_argument('--variable-horizon', type=str)#, default='model_update')
 
     args = parser.parse_args()
@@ -139,6 +140,7 @@ if __name__ == '__main__':
         'horizon_ending_epoch': 100,
         
         'dump_rate': dump_rate,
+        'dump_checkpoints': [10000, 20000, 50000, 100000, 200000, 500000, 1000000],
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
         'env_max_h': env.max_steps,

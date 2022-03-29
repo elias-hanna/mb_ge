@@ -33,6 +33,10 @@ class GoExplore():
             self.dump_rate = params['dump_rate']
         else:
             self.dump_rate = 100
+        if 'dump_checkpoints' in params:
+            self._dump_checkpoints = params['dump_checkpoints']
+        else:
+            raise Exception('GoExplore _process_params error: dump_checkpoints not in params')
         if 'use_variable_model_horizon' in params:
             self._use_variable_model_horizon = params['use_variable_model_horizon']
             if self._use_variable_model_horizon:
@@ -101,6 +105,8 @@ class GoExplore():
         budget_used = 0
         done = False
 
+        budget_dump_cpt = 0
+
         # Variable horizon variables
         if self._use_variable_model_horizon:
             e = 0
@@ -162,9 +168,13 @@ class GoExplore():
                 to_print += f'| current_epoch: {e}'
 
             # Dump data
-            if itr%self.dump_rate == 0:
-                self.state_archive.dump_archive(self.dump_path, budget_used, itr)
-
+            # if itr%self.dump_rate == 0:
+                # self.state_archive.dump_archive(self.dump_path, budget_used, itr)
+            if budget_used >= self._dump_checkpoints[budget_dump_cpt]:
+                self.state_archive.dump_archive(self.dump_path, budget_used,
+                                                self._dump_checkpoints[budget_dump_cpt])
+                budget_dump_cpt += 1
+                
             # Actually print
             print(to_print)
 
