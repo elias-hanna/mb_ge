@@ -90,5 +90,8 @@ class StateDisagreementSelection(SelectionMethod):
             disagrs.append(mean_disagr)
             els.append(element)
 
-        elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
+        try:
+            elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
+        except Exception as e:
+            import pdb; pdb.set_trace()
         return elements_ordered
