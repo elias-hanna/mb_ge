@@ -6,9 +6,10 @@ from mb_ge.selection.selection import SelectionMethod
 
 class HeuristicSelection(SelectionMethod):
     def select_element_from_cell_archive(self, archive):
-        weights = [1/(math.sqrt(0.5*cell.visit_count + 1)) for cell in archive._archive.values()]
-        selected_cell_list = random.choices([cell for cell in archive._archive.values()],
-                                            k=len(cell), weights=weights)
+        all_cells = archive._archive.values()
+        weights = [1/(math.sqrt(0.5*cell.visit_count + 1)) for cell in all_cells]
+        selected_cell_list = random.choices([cell for cell in all_cells],
+                                            k=len(all_cells), weights=weights)
         for selected_cell in selected_cell_list:
             el_list = selected_cell._elements
             selected_element_list = self.select_element_from_element_list(el_list,
