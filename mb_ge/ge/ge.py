@@ -155,7 +155,8 @@ class GoExplore():
             b_used += (sel_el_go_b)*len(elements) + b_used_expl
             
             # Select a state to add to archive from the exploration elements
-            sel_els = self._cell_selection_method.select_element_from_element_list(elements, 1)
+            sel_els = self._cell_selection_method.select_element_from_element_list(elements,
+                                                                                   10)
             
             ## Update archive and other datasets
             for sel_el in sel_els:

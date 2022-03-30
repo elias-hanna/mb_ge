@@ -116,7 +116,7 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': budget,
-        'exploration_horizon': 100,
+        'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
 
