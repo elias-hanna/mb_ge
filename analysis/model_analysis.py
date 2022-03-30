@@ -50,7 +50,7 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
             if (end.descriptor == prev_descriptors[i]).all():
                 # import pdb; pdb.set_trace()
                 next_elems_indexes.append(i)
-        print(time.time()-efef)
+        # print(time.time()-efef)
         # all_indexes += list(next_elems_indexes)
         # count = Counter(all_indexes)
 
@@ -198,8 +198,12 @@ def compute_coverage_and_reward_for_rep(rep_dir):
         rep_path = os.path.join(folderpath, rep_dir)
         iter_dirs = next(os.walk(rep_path))[1]
         iter_dirs = natsort.natsorted(iter_dirs)
+        real_iter_dirs = [d for d in iter_dirs if 'sim' not in d]
+        sim_iter_dirs = [d for d in iter_dirs if 'sim' in d]
         print(f"Currently processing {rep_path}")
-        for iter_dir in iter_dirs:
+        # for iter_dir in iter_dirs:
+        early_exit_cpt = 0
+        for iter_dir in real_iter_dirs:
             iterpath = os.path.join(rep_path, iter_dir)
             print(f"Currently processing {iterpath}")
 
@@ -236,6 +240,9 @@ def compute_coverage_and_reward_for_rep(rep_dir):
             print(f"Took {time.time()-reconstruct_start_time} seconds to compute rewarded elements")
             rewarding_pi_count.append(nb_of_rewarded_elems)
 
+            early_exit_cpt += 1
+            if early_exit_cpt > 10:
+                return (coverages, rewarding_pi_count)
         return (coverages, rewarding_pi_count)
 
 ################################################################################
@@ -311,10 +318,13 @@ if __name__ == '__main__':
 
     max_values = []
     for rep_dir in rep_dirs:
+        print(rep_dir)
         rep_path = os.path.join(folderpath, rep_dir)
         iter_dirs = next(os.walk(rep_path))[1]
         iter_dirs = natsort.natsorted(iter_dirs)
-        values = [iter_dir.split('_')[-1] for iter_dir in iter_dirs]
+        real_iter_dirs = [d for d in iter_dirs if 'sim' not in d]
+        sim_iter_dirs = [d for d in iter_dirs if 'sim' in d]
+        values = [iter_dir.split('_')[-1] for iter_dir in real_iter_dirs]
         if len(values) > len(max_values):
             max_values = values
 
@@ -328,7 +338,6 @@ if __name__ == '__main__':
     # Create multiprocessing pool
     pool = multiprocessing.Pool(multiprocessing.cpu_count()-1)
 
-    import pdb; pdb.set_trace()
     results = pool.map(compute_coverage_and_reward_for_rep, [rep_dir for rep_dir in rep_dirs])
 
     for rep_res in results:
