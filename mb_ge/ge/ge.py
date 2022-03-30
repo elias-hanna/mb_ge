@@ -103,9 +103,11 @@ class GoExplore():
         self.state_archive.add(init_elem)
         itr = 0
         budget_used = 0
+        sim_budget_used = 0
         done = False
 
         budget_dump_cpt = 0
+        sim_budget_dump_cpt = 0
 
         # Variable horizon variables
         if self._use_variable_model_horizon:
@@ -128,6 +130,7 @@ class GoExplore():
                     self.h_exploration = y
 
             b_used = 0
+            sim_b_used = 0
             ### OLD WAY closer to GE ###
             # ## Reset environment
             # obs = self.gym_env.reset()
@@ -153,10 +156,11 @@ class GoExplore():
             elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
             # import pdb; pdb.set_trace()
             b_used += (sel_el_go_b)*len(elements) + b_used_expl
-            
+            sim_b_used += len(elements)*self.h_exploration
             # Select a state to add to archive from the exploration elements
+            nb_of_el_to_add = 10
             sel_els = self._cell_selection_method.select_element_from_element_list(elements,
-                                                                                   10)
+                                                                                   nb_of_el_to_add)
             
             ## Update archive and other datasets
             for sel_el in sel_els:
@@ -169,12 +173,13 @@ class GoExplore():
 
             ## Update used budget
             budget_used += b_used
+            sim_budget_used += sim_b_used
             unique_trs_observed = len(self.observed_transitions)
             itr += 1
             
             # Verbose
             to_print = f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
-            
+
             # Update exploration horizon
             if self._use_variable_model_horizon:
                 if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
@@ -196,7 +201,11 @@ class GoExplore():
                 self.state_archive.dump_archive(self.dump_path, budget_used,
                                                 self._dump_checkpoints[budget_dump_cpt])
                 budget_dump_cpt += 1
-                
+
+            if sim_budget_used >= self._dump_checkpoints[sim_budget_dump_cpt]:
+                self.state_archive.dump_archive(self.dump_path, sim_budget_used,
+                                                'sim'+str(self._dump_checkpoints[sim_budget_dump_cpt]))
+                sim_budget_dump_cpt += 1
             # Actually print
             print(to_print)
 

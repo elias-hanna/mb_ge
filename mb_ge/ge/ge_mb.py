@@ -42,10 +42,12 @@ class ModelBasedGoExplore(GoExplore):
         self.state_archive.add(init_elem)
         itr = 0
         budget_used = 0
+        sim_budget_used = 0
         i_budget_used = 0
         done = False
 
         budget_dump_cpt = 0
+        sim_budget_dump_cpt = 0
 
         # Variable horizon variables
         if self._use_variable_model_horizon:
@@ -67,6 +69,8 @@ class ModelBasedGoExplore(GoExplore):
                 elif e > b:
                     self.h_exploration = y
 
+            b_used = 0
+            sim_b_used = 0
             ## Reset environment
             obs = self.gym_env.reset()
             # Select a state to return from the archive
@@ -78,6 +82,8 @@ class ModelBasedGoExplore(GoExplore):
             sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go to the selected state on real system
             transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
+            sim_b_used += self.h_exploration
+
             # Correct sel_i_el to have the right trajectory
             self._correct_el(sel_i_el, transitions)
             
@@ -90,6 +96,7 @@ class ModelBasedGoExplore(GoExplore):
             # Update used budget
             i_budget_used += i_b_used
             budget_used += b_used
+            sim_budget_used += sim_b_used
             unique_trs_observed = len(self.observed_transitions)
             itr += 1
 
@@ -122,7 +129,11 @@ class ModelBasedGoExplore(GoExplore):
                 self.state_archive.dump_archive(self.dump_path, budget_used,
                                                 self._dump_checkpoints[budget_dump_cpt])
                 budget_dump_cpt += 1
-                
+
+            if sim_budget_used >= self._dump_checkpoints[sim_budget_dump_cpt]:
+                self.state_archive.dump_archive(self.dump_path, sim_budget_used,
+                                                'sim'+str(self._dump_checkpoints[sim_budget_dump_cpt]))
+                sim_budget_dump_cpt += 1
             # Actually print
             print(to_print)
 
