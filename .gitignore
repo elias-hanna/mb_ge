@@ -11,3 +11,4 @@ data/
 *pycache*
 analysis/*
 !analysis/model_analysis.py
+!analysis/count_bins.py
