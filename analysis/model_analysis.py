@@ -209,12 +209,16 @@ def compute_coverage_and_reward_for_rep(rep_dir):
         rep_path = os.path.join(folderpath, rep_dir)
         iter_dirs = next(os.walk(rep_path))[1]
         iter_dirs = natsort.natsorted(iter_dirs)
+
         real_iter_dirs = [d for d in iter_dirs if 'sim' not in d]
+        real_iter_dirs_no_final = [d for d in real_iter_dirs if 'final' not in d]
         sim_iter_dirs = [d for d in iter_dirs if 'sim' in d]
+        sim_iter_dirs_no_final = [d for d in sim_iter_dirs if 'final' not in d]
+
         print(f"Currently processing {rep_path}")
         # for iter_dir in iter_dirs:
         early_exit_cpt = 0
-        for iter_dir in real_iter_dirs:
+        for iter_dir in real_iter_dirs_no_final:
             iterpath = os.path.join(rep_path, iter_dir)
             print(f"Currently processing {iterpath}")
 
@@ -415,8 +419,6 @@ if __name__ == '__main__':
 
     coverage_error = np.nanstd(coverage_vals, axis = 0)
     reward_error = np.nanstd(rewarding_pis_vals, axis = 0)
-
-    import pdb; pdb.set_trace()
 
     ## Save the computed data
     np.savez(f'{run_name}_data', coverage_mean=coverage_mean, coverage_error=coverage_error,
