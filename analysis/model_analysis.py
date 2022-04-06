@@ -1,6 +1,10 @@
 # Data manipulation includes
 import numpy as np
+import matplotlib
 from matplotlib import pyplot as plt
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
+import copy
 import multiprocessing
 
 # OS manipulation includes
@@ -28,7 +32,11 @@ def load_archive_data(folderpath):
 def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute_policies=False):
     # assert len(params) == len(descriptors) == len(prev_descriptors)
     assert len(descriptors) == len(prev_descriptors)
-    nb_of_elems = len(descriptors)
+
+    loc_descriptors = descriptors.copy()
+    loc_prev_descriptors = prev_descriptors.copy()
+    # loc_params = params.copy()
+    
     elements = []
     leaf_elems = []
     current_ends = []
@@ -40,18 +48,16 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
     from collections import Counter
     all_indexes = []
     while current_ends != []:
+        nb_of_elems = len(loc_prev_descriptors)
         end = current_ends[0]
         # next_elems_indexes = np.unique(np.where((prev_descriptors == end.descriptor).all())[0])
-        # next_elems_indexes = np.unique(np.where((prev_descriptors == end.descriptor))[0])
+        # next_elems_indexes = np.unique(np.where((loc_prev_descriptors == end.descriptor))[0])
         next_elems_indexes = []
-
-        efef = time.time()
+        # print(len(prev_descriptors), len(loc_prev_descriptors))
+        # print('aadjdajda:', len(descriptors), len(loc_prev_descriptors))
         for i in range(1, nb_of_elems):
-            if (end.descriptor == prev_descriptors[i]).all():
+            if (end.descriptor == loc_prev_descriptors[i]).all():
                 next_elems_indexes.append(i)
-        # print(time.time()-efef)
-        # all_indexes += list(next_elems_indexes)
-        # count = Counter(all_indexes)
 
         ## Check if the element is a final one (no other policy starting from it)
         if len(next_elems_indexes) == 0:
@@ -63,10 +69,20 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
                 # continue
             ## Reconstruct the element
             # elem = Element(policy_parameters=params[next_elem_index],
-            elem = Element(descriptor=descriptors[next_elem_index],
+            elem = Element(descriptor=copy.copy(loc_descriptors[next_elem_index]),
                            previous_element=end)
             elements.append(elem)
             current_ends.append(elem)
+        ## Remove from local lists the elements that were reconstructed
+        # sorted_idx = sorted(next_elems_indexes, reverse=True)
+        # print('sorted_idx: ', sorted_idx)
+        loc_prev_descriptors = np.delete(loc_prev_descriptors, next_elems_indexes, axis=0)
+        loc_descriptors = np.delete(loc_descriptors, next_elems_indexes, axis=0)
+        # for idx in sorted_idx:
+        # for idx in next_elems_indexes:
+            # print('deleted {idx}') 
+            # np.delete(loc_prev_descriptors, idx)
+            # np.delete(loc_descriptors, idx)
         ## Remove the element whom children just got reconstructed
         current_ends.pop(0)
         # print(len(elements)/nb_of_elems)
@@ -236,7 +252,7 @@ def compute_coverage_and_reward_for_rep(rep_dir):
             rewarding_pi_count.append(nb_of_rewarded_elems)
 
             early_exit_cpt += 1
-            if early_exit_cpt > 4:
+            if early_exit_cpt > 100:
                 return (coverages, rewarding_pi_count)
         return (coverages, rewarding_pi_count)
 
@@ -335,9 +351,10 @@ if __name__ == '__main__':
 
     # Create multiprocessing pool
     pool = multiprocessing.Pool(multiprocessing.cpu_count()-1)
+    # pool = multiprocessing.Pool(1)
 
     results = pool.map(compute_coverage_and_reward_for_rep, [rep_dir for rep_dir in rep_dirs])
-
+    
     for rep_res in results:
         coverage_vals[curr_rep, :len(rep_res[0])] = rep_res[0]
         rewarding_pis_vals[curr_rep, :len(rep_res[1])] = rep_res[1]
@@ -399,6 +416,12 @@ if __name__ == '__main__':
     coverage_error = np.nanstd(coverage_vals, axis = 0)
     reward_error = np.nanstd(rewarding_pis_vals, axis = 0)
 
+    import pdb; pdb.set_trace()
+
+    ## Save the computed data
+    np.savez(f'{run_name}_data', coverage_mean=coverage_mean, coverage_error=coverage_error,
+             reward_mean=coverage_mean, reward_error=coverage_error)
+    
     label = [int(val) for val in max_values]
 
     plt.figure()
