@@ -67,8 +67,8 @@ class RandomExploration(ExplorationMethod):
             next_step_pred, disagreement = model.forward(action, obs, mean=True, disagr=True)
             ## Compute mean prediction from model samples
             mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
-            obs = mean_pred
-            traj.append(mean_pred)
+            obs += mean_pred
+            traj.append(obs)
             disagreements.append(disagreement)
             actions.append(action)
         element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,

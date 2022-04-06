@@ -82,6 +82,7 @@ class ModelBasedGoExplore(GoExplore):
             sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go to the selected state on real system
             transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
+            
             sim_b_used += self.h_exploration
 
             # Correct sel_i_el to have the right trajectory
