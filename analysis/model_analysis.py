@@ -48,7 +48,6 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
         efef = time.time()
         for i in range(1, nb_of_elems):
             if (end.descriptor == prev_descriptors[i]).all():
-                # import pdb; pdb.set_trace()
                 next_elems_indexes.append(i)
         # print(time.time()-efef)
         # all_indexes += list(next_elems_indexes)
@@ -71,8 +70,6 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
         ## Remove the element whom children just got reconstructed
         current_ends.pop(0)
         # print(len(elements)/nb_of_elems)
-    # import pdb; pdb.set_trace()
-    # import pdb; pdb.set_trace()
     # while len(elements) < nb_of_elems:
     #     while len(current_ends) != 0:
     #         end = current_ends[0]
@@ -157,7 +154,6 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
 
 #         for j in range(1, nb_of_elems):
 #             if (prev_descriptors[i] == descriptors[j]).all():
-#                 # import pdb; pdb.set_trace()
 #                 next_elems_indexes.append(i)
                 
 #         new_elem = Element(descriptor=descriptors[i],
@@ -171,7 +167,6 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
         
 #         for i in range(1, nb_of_elems):
 #             if (end.descriptor == prev_descriptors[i]).all():
-#                 # import pdb; pdb.set_trace()
 #                 next_elems_indexes.append(i)
         
 #         ## Check if the element is a final one (no other policy starting from it)
@@ -241,7 +236,7 @@ def compute_coverage_and_reward_for_rep(rep_dir):
             rewarding_pi_count.append(nb_of_rewarded_elems)
 
             early_exit_cpt += 1
-            if early_exit_cpt > 10:
+            if early_exit_cpt > 4:
                 return (coverages, rewarding_pi_count)
         return (coverages, rewarding_pi_count)
 
@@ -323,8 +318,11 @@ if __name__ == '__main__':
         iter_dirs = next(os.walk(rep_path))[1]
         iter_dirs = natsort.natsorted(iter_dirs)
         real_iter_dirs = [d for d in iter_dirs if 'sim' not in d]
+        real_iter_dirs_no_final = [d for d in real_iter_dirs if 'final' not in d]
         sim_iter_dirs = [d for d in iter_dirs if 'sim' in d]
-        values = [iter_dir.split('_')[-1] for iter_dir in real_iter_dirs]
+        sim_iter_dirs_no_final = [d for d in sim_iter_dirs if 'final' not in d]
+        values = [iter_dir.split('_')[-1] for iter_dir in real_iter_dirs_no_final]
+        
         if len(values) > len(max_values):
             max_values = values
 
@@ -395,14 +393,13 @@ if __name__ == '__main__':
     #         ## Increment
     #         curr_iter += 1
     #     curr_rep += 1
-    import pdb; pdb.set_trace()
     coverage_mean = np.nanmean(coverage_vals, axis = 0)
     reward_mean = np.nanmean(rewarding_pis_vals, axis = 0)
 
     coverage_error = np.nanstd(coverage_vals, axis = 0)
     reward_error = np.nanstd(rewarding_pis_vals, axis = 0)
 
-    label = max_values
+    label = [int(val) for val in max_values]
 
     plt.figure()
 
@@ -411,6 +408,9 @@ if __name__ == '__main__':
                      facecolor='green', alpha=0.5)
     plt.title(f"Coverage depending on number of iterations for {run_name}")
     plt.savefig(f"coverage_{run_name}.jpg")
+
+    # pos = np.interp(label, coverage_mean, label)
+    # plt.xticks(pos, label)
     
     plt.figure()
     plt.plot(label, reward_mean, 'k-')
