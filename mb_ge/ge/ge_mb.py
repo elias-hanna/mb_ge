@@ -84,7 +84,7 @@ class ModelBasedGoExplore(GoExplore):
             transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
             
             sim_b_used += self.h_exploration
-
+            import pdb; pdb.set_trace()
             # Correct sel_i_el to have the right trajectory
             self._correct_el(sel_i_el, transitions)
             

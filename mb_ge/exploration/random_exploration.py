@@ -32,7 +32,7 @@ class RandomExploration(ExplorationMethod):
         env.set_state(prev_element.sim_state['qpos'], prev_element.sim_state['qvel'])
         traj = []
         actions = []
-        obs = prev_element.trajectory[-1]
+        obs = prev_element.trajectory[-1].copy()
         cum_rew = 0
         ## WARNING: need to get previous obs
         for _ in range(self.exploration_horizon):
@@ -55,10 +55,10 @@ class RandomExploration(ExplorationMethod):
         # assert len(x) == len(self.controller.get_parameters())
         ## Set controller parameters
         controller.set_parameters(x)
-
+        
         traj = []
         actions = []
-        obs = prev_element.trajectory[-1]
+        obs = prev_element.trajectory[-1].copy()
         cum_rew = 0
         disagreements = []
         ## WARNING: need to get previous obs
@@ -67,8 +67,8 @@ class RandomExploration(ExplorationMethod):
             next_step_pred, disagreement = model.forward(action, obs, mean=True, disagr=True)
             ## Compute mean prediction from model samples
             mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
-            obs += mean_pred
-            traj.append(obs)
+            obs += mean_pred.copy()
+            traj.append(obs.copy())
             disagreements.append(disagreement)
             actions.append(action)
         element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,
@@ -104,6 +104,7 @@ class RandomExploration(ExplorationMethod):
         if eval_on_model:
             for xx in to_evaluate:
                 elements.append(eval_func(xx, gym_env_or_model, prev_element))
+            exit()
         else:
             elements = pool.starmap(eval_func, zip(to_evaluate, repeat(gym_env_or_model),
                                                    repeat(prev_element)))
