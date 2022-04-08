@@ -110,14 +110,8 @@ class DynamicsModel():
             # np.tile(copy.deepcopy(a),(self._dynamics_model.ensemble_size, 1))
             batch_cpt += 1
         # import pdb; pdb.set_trace()
-        pred_delta_ns, disagreement = self.forward(A_0, S_0, mean=mean, disagr=disagr,
-                                                   multiple=True)
+        return self.forward(A_0, S_0, mean=mean, disagr=disagr, multiple=True)
 
-        batch_pred_delta_ns = []
-        batch_disagreement = []
-        for i in range(batch_len):
-            batch_pred_delta_ns.append(pred_delta_ns[i*batch_len:i*batch_len+batch_len])
-            disagreement.append(disagreement[i*batch_len:i*batch_len+batch_len])
         return batch_pred_delta_ns, batch_disagreement
 
     def forward(self, a, s, mean=True, disagr=True, multiple=False):
@@ -144,14 +138,15 @@ class DynamicsModel():
                 pred_delta_ns = ptu.get_numpy(pred_delta_ns)
                 return pred_delta_ns, disagreement
             else:
-                pred_delta_ns, disagreement = \
+                pred_delta_ns_list, disagreement_list = \
                 self._dynamics_model.sample_with_disagreement_multiple(
                     torch.cat((
                         self._dynamics_model._expand_to_ts_form(s_0),
                         self._dynamics_model._expand_to_ts_form(a_0)), dim=-1
                     ), disagreement_type="mean" if mean else "var")
-                pred_delta_ns = ptu.get_numpy(pred_delta_ns)
-                return pred_delta_ns, disagreement                
+                for i in range(len(pred_delta_ns_list)):
+                    pred_delta_ns_list[i] = ptu.get_numpy(pred_delta_ns_list[i])
+                return pred_delta_ns_list, disagreement_list
         else:
             pred_delta_ns = self._dynamics_model.output_pred_ts_ensemble(s_0, a_0, mean=mean)
         return pred_delta_ns, 0

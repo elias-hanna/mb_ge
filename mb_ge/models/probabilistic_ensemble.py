@@ -246,7 +246,6 @@ class ProbabilisticEnsemble(ParallelizedEnsemble):
                 samples_list.append(samples)
                 disagreements_list.append(disagreements)
 
-        import pdb; pdb.set_trace()
         if return_dist:
             return samples_list, disagreements_list, mean_list, logstd_list
         else:

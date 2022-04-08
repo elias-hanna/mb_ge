@@ -69,6 +69,7 @@ class RandomExploration(ExplorationMethod):
             next_step_pred, disagreement = model.forward(action, obs, mean=True, disagr=True)
             # next_step_pred, disagreement = self.gym_env_or_model.forward(action, obs, mean=True, disagr=True)
             ## Compute mean prediction from model samples
+            import pdb; pdb.set_trace()
             mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
             obs += mean_pred.copy()
             traj.append(obs.copy())
@@ -108,21 +109,23 @@ class RandomExploration(ExplorationMethod):
 
             batch_pred_delta_ns, batch_disagreement = model.forward_multiple(A, S, mean=True,
                                                                              disagr=True)
-            import pdb; pdb.set_trace()
-        #     action = controller(obs)
-        #     next_step_pred, disagreement = model.forward(action, obs, mean=True, disagr=True)
-        #     # next_step_pred, disagreement = self.gym_env_or_model.forward(action, obs, mean=True, disagr=True)
-        #     ## Compute mean prediction from model samples
-        #     mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
-        #     obs += mean_pred.copy()
-        #     traj.append(obs.copy())
-        #     disagreements.append(disagreement)
-        #     actions.append(action)
-        # element = Element(descriptor=traj[-1][:3], trajectory=traj, actions=actions,
-        #                   disagreement = disagreements,
-        #                   reward=cum_rew, policy_parameters=x, previous_element=prev_element,)
-        # ## WARNING: Need to add a bd super function somewhere in params or in Element I guess
-        # return element
+
+            for i in range(len(X)):
+              ## Compute mean prediction from model samples
+                next_step_pred = batch_pred_delta_ns[i]
+                mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
+                S[i,:] += mean_pred.copy()
+                traj_list[i].append(S[i,:].copy())
+                disagreements_list[i].append(batch_disagreement[i])
+                actions_list[i].append(A[i,:])
+
+        el_list = []
+        for i in range(len(X)):
+            element = Element(descriptor=traj_list[i][-1][:3], trajectory=traj_list[i],
+                              actions=actions_list[i], disagreement = disagreements_list[i],
+                              policy_parameters=X[i], previous_element=prev_element,)
+            el_list.append(element)
+        return el_list
             
     def _explore(self, gym_env_or_model, prev_element, exploration_horizon, eval_on_model=False):
         ## Set exploration horizon (here and not in params because it might be dynamic)
