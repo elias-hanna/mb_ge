@@ -12,9 +12,13 @@ import numpy as np
 import copy
 
 class DynamicsModel():
-    def __init__(self, params=None):
+    def __init__(self, params=None, dynamics_model=None):
+        if dynamics_model is not None:
+            self._dynamics_model = dynamics_model
+            return
+        
         self._process_params(params)
-
+        
         ## INIT MODEL ##
         if self._dynamics_model_type == "prob":
             from mb_ge.models.mbrl import MBRLTrainer
@@ -85,25 +89,69 @@ class DynamicsModel():
         else:
             raise Exception('DynamicsModel _process_params error: dynamics_model_params not in params')
 
-    def forward(self, a, s, mean=True, disagr=True):
+    def forward_multiple(self, A, S, mean=True, disagr=True):
+        ## Takes a list of actions A and a list of states S we want to query the model from
+        ## Returns a list of the return of a forward call for each couple (action, state)
+        assert len(A) == len(S)
+        batch_len = len(A)
+        ens_size = self._dynamics_model.ensemble_size
+        
+        S_0 = np.empty((batch_len*ens_size, S.shape[1]))
+        A_0 = np.empty((batch_len*ens_size, A.shape[1]))
+
+        batch_cpt = 0
+        for a, s in zip(A, S):
+            S_0[batch_cpt*ens_size:batch_cpt*ens_size+ens_size,:] = \
+            np.tile(s,(self._dynamics_model.ensemble_size, 1))
+            # np.tile(copy.deepcopy(s),(self._dynamics_model.ensemble_size, 1))
+
+            A_0[batch_cpt*ens_size:batch_cpt*ens_size+ens_size,:] = \
+            np.tile(a,(self._dynamics_model.ensemble_size, 1))
+            # np.tile(copy.deepcopy(a),(self._dynamics_model.ensemble_size, 1))
+            batch_cpt += 1
+        # import pdb; pdb.set_trace()
+        pred_delta_ns, disagreement = self.forward(A_0, S_0, mean=mean, disagr=disagr,
+                                                   multiple=True)
+
+        batch_pred_delta_ns = []
+        batch_disagreement = []
+        for i in range(batch_len):
+            batch_pred_delta_ns.append(pred_delta_ns[i*batch_len:i*batch_len+batch_len])
+            disagreement.append(disagreement[i*batch_len:i*batch_len+batch_len])
+        return batch_pred_delta_ns, batch_disagreement
+
+    def forward(self, a, s, mean=True, disagr=True, multiple=False):
         s_0 = copy.deepcopy(s)
         a_0 = copy.deepcopy(a)
-        
-        s_0 = np.tile(s_0,(self._dynamics_model.ensemble_size, 1))
-        
+
+        if not multiple:
+            s_0 = np.tile(s_0,(self._dynamics_model.ensemble_size, 1))
+            a_0 = np.tile(a_0,(self._dynamics_model.ensemble_size, 1))
+
         s_0 = ptu.from_numpy(s_0)
         a_0 = ptu.from_numpy(a_0)
         
-        a_0 = a_0.repeat(self._dynamics_model.ensemble_size,1)
+        # a_0 = a_0.repeat(self._dynamics_model.ensemble_size,1)
+
         # if probalistic dynamics model - choose output mean or sample
         if disagr:
-            pred_delta_ns, disagreement = self._dynamics_model.sample_with_disagreement(
-                torch.cat((
-                    self._dynamics_model._expand_to_ts_form(s_0),
-                    self._dynamics_model._expand_to_ts_form(a_0)), dim=-1
-                ), disagreement_type="mean" if mean else "var")
-            pred_delta_ns = ptu.get_numpy(pred_delta_ns)
-            return pred_delta_ns, disagreement
+            if not multiple:
+                pred_delta_ns, disagreement = self._dynamics_model.sample_with_disagreement(
+                    torch.cat((
+                        self._dynamics_model._expand_to_ts_form(s_0),
+                        self._dynamics_model._expand_to_ts_form(a_0)), dim=-1
+                    ), disagreement_type="mean" if mean else "var")
+                pred_delta_ns = ptu.get_numpy(pred_delta_ns)
+                return pred_delta_ns, disagreement
+            else:
+                pred_delta_ns, disagreement = \
+                self._dynamics_model.sample_with_disagreement_multiple(
+                    torch.cat((
+                        self._dynamics_model._expand_to_ts_form(s_0),
+                        self._dynamics_model._expand_to_ts_form(a_0)), dim=-1
+                    ), disagreement_type="mean" if mean else "var")
+                pred_delta_ns = ptu.get_numpy(pred_delta_ns)
+                return pred_delta_ns, disagreement                
         else:
             pred_delta_ns = self._dynamics_model.output_pred_ts_ensemble(s_0, a_0, mean=mean)
         return pred_delta_ns, 0

@@ -21,6 +21,10 @@ from mb_ge.utils.element import Element
 from mb_ge.archive.fixed_grid_archive import FixedGridArchive
 from mb_ge.controller.nn_controller import NeuralNetworkController
 
+from count_bins import getBinsReachable
+
+reachable_bins = 0
+
 def load_archive_data(folderpath):
     params = None
     # params = np.load(os.path.join(folderpath,'params.npz'))['arr_0']
@@ -203,62 +207,65 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
 #         current_ends.pop(0)
 
 def compute_coverage_and_reward_for_rep(rep_dir):
-        coverages = []
-        rewarding_pi_count = []
-        
-        rep_path = os.path.join(folderpath, rep_dir)
-        iter_dirs = next(os.walk(rep_path))[1]
-        iter_dirs = natsort.natsorted(iter_dirs)
-
-        real_iter_dirs = [d for d in iter_dirs if 'sim' not in d]
-        real_iter_dirs_no_final = [d for d in real_iter_dirs if 'final' not in d]
-        sim_iter_dirs = [d for d in iter_dirs if 'sim' in d]
-        sim_iter_dirs_no_final = [d for d in sim_iter_dirs if 'final' not in d]
-
-        print(f"Currently processing {rep_path}")
-        # for iter_dir in iter_dirs:
-        early_exit_cpt = 0
-        for iter_dir in real_iter_dirs_no_final:
-            iterpath = os.path.join(rep_path, iter_dir)
-            print(f"Currently processing {iterpath}")
-
-            pi_params, descs, prev_descs = load_archive_data(iterpath)
-
-            gym_env = gym.make('BallInCup3d-v0')
-
-            reconstruct_start_time = time.time()
-            elements, leaf_elems = reconstruct_elements(pi_params, descs, prev_descs, gym_env,
-                                                        execute_policies=False)
-            print(f"Took {time.time()-reconstruct_start_time} second to reconstruct elements")
-            
-            archive = FixedGridArchive(params=params)
-
-            reconstruct_start_time = time.time()            
-            for el in elements:
-                archive.add(el)
-            print(f"Took {time.time()-reconstruct_start_time} second to add elements to archive")
-
-            ## Compute coverage (number of filled bins vs total number of bins)
-            coverage = len(archive._archive.keys())/(params['fixed_grid_div']**3)
-            coverages.append(coverage)
-            
-            ## Compute number of policies reaching reward state
-            target_size = gym_env.sim.model.site_size[1, [0, 1, 2]]
-            ball_size = gym_env.sim.model.geom_size[2, 0]
-
-            nb_of_rewarded_elems = 0
+    global reachable_bins
+    coverages = []
+    rewarding_pi_count = []
     
-            reconstruct_start_time = time.time()            
-            for el in elements:
-                if float(all(el.descriptor < target_size - ball_size)):
-                    nb_of_rewarded_elems += 1
-            print(f"Took {time.time()-reconstruct_start_time} seconds to compute rewarded elements")
-            rewarding_pi_count.append(nb_of_rewarded_elems)
-
-            early_exit_cpt += 1
-            if early_exit_cpt > 100:
-                return (coverages, rewarding_pi_count)
-        return (coverages, rewarding_pi_count)
+    rep_path = os.path.join(folderpath, rep_dir)
+    iter_dirs = next(os.walk(rep_path))[1]
+    iter_dirs = natsort.natsorted(iter_dirs)
+    
+    real_iter_dirs = [d for d in iter_dirs if 'sim' not in d]
+    real_iter_dirs_no_final = [d for d in real_iter_dirs if 'final' not in d]
+    sim_iter_dirs = [d for d in iter_dirs if 'sim' in d]
+    sim_iter_dirs_no_final = [d for d in sim_iter_dirs if 'final' not in d]
+    
+    print(f"Currently processing {rep_path}")
+    # for iter_dir in iter_dirs:
+    early_exit_cpt = 0
+    for iter_dir in real_iter_dirs_no_final:
+        iterpath = os.path.join(rep_path, iter_dir)
+        print(f"Currently processing {iterpath}")
+        
+        pi_params, descs, prev_descs = load_archive_data(iterpath)
+        
+        gym_env = gym.make('BallInCup3d-v0')
+        
+        reconstruct_start_time = time.time()
+        elements, leaf_elems = reconstruct_elements(pi_params, descs, prev_descs, gym_env,
+                                                    execute_policies=False)
+        print(f"Took {time.time()-reconstruct_start_time} second to reconstruct elements")
+        
+        archive = FixedGridArchive(params=params)
+        
+        reconstruct_start_time = time.time()            
+        for el in elements:
+            archive.add(el)
+        print(f"Took {time.time()-reconstruct_start_time} second to add elements to archive")
+        
+        ## Compute coverage (number of filled bins vs total number of bins)
+        # coverage = len(archive._archive.keys())/(params['fixed_grid_div']**3)
+        coverage = len(archive._archive.keys())/reachable_bins
+        # coverage = reachable_bins/(params['fixed_grid_div']**3)
+        coverages.append(coverage)
+        
+        ## Compute number of policies reaching reward state
+        target_size = gym_env.sim.model.site_size[1, [0, 1, 2]]
+        ball_size = gym_env.sim.model.geom_size[2, 0]
+        
+        nb_of_rewarded_elems = 0
+        
+        reconstruct_start_time = time.time()            
+        for el in elements:
+            if float(all(abs(el.descriptor) < target_size - ball_size)):
+                nb_of_rewarded_elems += 1
+        print(f"Took {time.time()-reconstruct_start_time} seconds to compute rewarded elements")
+        rewarding_pi_count.append(nb_of_rewarded_elems)
+        
+        early_exit_cpt += 1
+        if early_exit_cpt > 100:
+            return (coverages, rewarding_pi_count)
+    return (coverages, rewarding_pi_count)
 
 ################################################################################
 ################################################################################
@@ -327,6 +334,9 @@ if __name__ == '__main__':
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
     }
+
+    reachable_bins = getBinsReachable(params['fixed_grid_min'], params['fixed_grid_max'],
+                                             params['fixed_grid_div'])
     rep_dirs = next(os.walk(folderpath))[1]
 
     number_of_reps = len(rep_dirs)
@@ -422,7 +432,7 @@ if __name__ == '__main__':
 
     ## Save the computed data
     np.savez(f'{run_name}_data', coverage_mean=coverage_mean, coverage_error=coverage_error,
-             reward_mean=coverage_mean, reward_error=coverage_error)
+             reward_mean=reward_mean, reward_error=reward_error)
     
     label = [int(val) for val in max_values]
 
@@ -434,9 +444,6 @@ if __name__ == '__main__':
     plt.title(f"Coverage depending on number of iterations for {run_name}")
     plt.savefig(f"coverage_{run_name}.jpg")
 
-    # pos = np.interp(label, coverage_mean, label)
-    # plt.xticks(pos, label)
-    
     plt.figure()
     plt.plot(label, reward_mean, 'k-')
     plt.fill_between(label, reward_mean-reward_error, reward_mean+reward_error,
