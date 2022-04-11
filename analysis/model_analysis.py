@@ -263,7 +263,7 @@ def compute_coverage_and_reward_for_rep(rep_dir):
         rewarding_pi_count.append(nb_of_rewarded_elems)
         
         early_exit_cpt += 1
-        if early_exit_cpt > 100:
+        if early_exit_cpt > 2:
             return (coverages, rewarding_pi_count)
     return (coverages, rewarding_pi_count)
 
@@ -424,6 +424,50 @@ if __name__ == '__main__':
     #         ## Increment
     #         curr_iter += 1
     #     curr_rep += 1
+    import pdb; pdb.set_trace()
+
+    label = [int(val) for val in max_values]
+
+    ## Print coverage depending 
+    coverage_target_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
+    corr_mean_budget = [0.]*len(coverage_target_vals)
+
+    corr_budget = np.empty((number_of_reps, len(coverage_target_vals)))
+    corr_budget[:] = np.nan
+
+    corr_budget = dict.fromkeys(coverage_target_vals, [])
+    
+    eps = 0.01 # allow 1% error margin ?
+    for i in range(len(coverage_target_vals)): # over each target val
+        for j in range(len(coverage_vals)): # over reps
+            for k in range(len(label)): # over each budget step
+                if coverage_vals[j][k] >= abs(coverage_target_vals[i] - epsilon):
+                    corr_budget[coverage_target_vals[i]].append(label[k])
+                    # corr_budget[j][i] = label[k]
+                    break
+
+    plt.figure()
+
+    plt.boxplot(corr_budget.values())
+    plt.set_xticklabels(corr_budget.keys())
+    # budget_spent_to_reach_mean = np.nanmean(corr_budget, axis = 0)
+    # budget_spent_to_reach_error = np.nanstd(corr_budget, axis = 0)
+
+    # plt.figure()
+    # plt.plot(label, budget_spent_to_reach_mean, 'k-')
+    # plt.fill_between(label, budget_spent_to_reach_mean-budget_spent_to_reach_error, budget_spent_to_reach_mean+budget_spent_to_reach_error,
+    #                  facecolor='green', alpha=0.5)
+    # plt.title(f"Number of rewarded policies depending on number of iterations for {run_name}")
+    plt.savefig(f"reward_{run_name}.jpg")
+
+    my_dict = {'ABC': [34.54, 34.345, 34.761], 'DEF': [34.541, 34.748, 34.482]}
+
+    fig, ax = plt.subplots()
+    ax.boxplot(my_dict.values())
+    ax.set_xticklabels(my_dict.keys())
+
+    ## Compute coverage and reward mean/error
+
     coverage_mean = np.nanmean(coverage_vals, axis = 0)
     reward_mean = np.nanmean(rewarding_pis_vals, axis = 0)
 
@@ -432,9 +476,7 @@ if __name__ == '__main__':
 
     ## Save the computed data
     np.savez(f'{run_name}_data', coverage_mean=coverage_mean, coverage_error=coverage_error,
-             reward_mean=reward_mean, reward_error=reward_error)
-    
-    label = [int(val) for val in max_values]
+             reward_mean=reward_mean, reward_error=reward_error)    
 
     plt.figure()
 
@@ -452,7 +494,6 @@ if __name__ == '__main__':
     plt.savefig(f"reward_{run_name}.jpg")
 
     plt.show()
-
     
     exit()
     
