@@ -6,6 +6,7 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 import copy
 import multiprocessing
+from itertools import repeat
 
 # OS manipulation includes
 import sys
@@ -263,7 +264,7 @@ def compute_coverage_and_reward_for_rep(rep_dir):
         rewarding_pi_count.append(nb_of_rewarded_elems)
         
         early_exit_cpt += 1
-        if early_exit_cpt > 2:
+        if early_exit_cpt > 20:
             return (coverages, rewarding_pi_count)
     return (coverages, rewarding_pi_count)
 
@@ -424,7 +425,7 @@ if __name__ == '__main__':
     #         ## Increment
     #         curr_iter += 1
     #     curr_rep += 1
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
     label = [int(val) for val in max_values]
 
@@ -435,36 +436,28 @@ if __name__ == '__main__':
     corr_budget = np.empty((number_of_reps, len(coverage_target_vals)))
     corr_budget[:] = np.nan
 
-    corr_budget = dict.fromkeys(coverage_target_vals, [])
+    # corr_budget = dict.fromkeys(coverage_target_vals, list())
+    corr_budget = {k: [] for k in coverage_target_vals}
     
     eps = 0.01 # allow 1% error margin ?
     for i in range(len(coverage_target_vals)): # over each target val
         for j in range(len(coverage_vals)): # over reps
             for k in range(len(label)): # over each budget step
-                if coverage_vals[j][k] >= abs(coverage_target_vals[i] - epsilon):
+                a = abs(coverage_target_vals[i] - eps)
+                if coverage_vals[j][k] >= abs(coverage_target_vals[i] - eps):
                     corr_budget[coverage_target_vals[i]].append(label[k])
                     # corr_budget[j][i] = label[k]
                     break
 
     plt.figure()
 
-    plt.boxplot(corr_budget.values())
-    plt.set_xticklabels(corr_budget.keys())
-    # budget_spent_to_reach_mean = np.nanmean(corr_budget, axis = 0)
-    # budget_spent_to_reach_error = np.nanstd(corr_budget, axis = 0)
+    ticks = [i+1 for i, v in enumerate(coverage_target_vals)]
 
-    # plt.figure()
-    # plt.plot(label, budget_spent_to_reach_mean, 'k-')
-    # plt.fill_between(label, budget_spent_to_reach_mean-budget_spent_to_reach_error, budget_spent_to_reach_mean+budget_spent_to_reach_error,
-    #                  facecolor='green', alpha=0.5)
-    # plt.title(f"Number of rewarded policies depending on number of iterations for {run_name}")
-    plt.savefig(f"reward_{run_name}.jpg")
+    bplot1 = plt.boxplot(corr_budget.values(), patch_artist=True)
+    
+    plt.xticks(ticks=ticks, labels=[str(i) for i in coverage_target_vals])
 
-    my_dict = {'ABC': [34.54, 34.345, 34.761], 'DEF': [34.541, 34.748, 34.482]}
-
-    fig, ax = plt.subplots()
-    ax.boxplot(my_dict.values())
-    ax.set_xticklabels(my_dict.keys())
+    plt.savefig(f"budget_to_reach_{run_name}.jpg")
 
     ## Compute coverage and reward mean/error
 
@@ -476,7 +469,7 @@ if __name__ == '__main__':
 
     ## Save the computed data
     np.savez(f'{run_name}_data', coverage_mean=coverage_mean, coverage_error=coverage_error,
-             reward_mean=reward_mean, reward_error=reward_error)    
+             reward_mean=reward_mean, reward_error=reward_error, budget_to_reach=corr_budget)    
 
     plt.figure()
 
