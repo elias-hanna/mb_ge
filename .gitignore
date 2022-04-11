@@ -12,3 +12,5 @@ data/
 analysis/*
 !analysis/model_analysis.py
 !analysis/count_bins.py
+!analysis/plot_all_analysis.py
+
