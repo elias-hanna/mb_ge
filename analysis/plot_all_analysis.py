@@ -101,26 +101,38 @@ if __name__ == '__main__':
 
     plt.figure()
 
-    coverage_target_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.]
+    coverage_target_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,]# 0.8, 0.9, 1.]
     ticks = [i+1 for i, v in enumerate(coverage_target_vals)]
 
     rr_budget_to_reach = rr_budget_to_reach.item()
     rh_budget_to_reach = rh_budget_to_reach.item()
     mrs_budget_to_reach = mrs_budget_to_reach.item()
-    
-    bplot1 = plt.boxplot(rr_budget_to_reach.values(), patch_artist=True,
-                         label='rr_budget_to_reach')
-    bplot2 = plt.boxplot(rh_budget_to_reach.values(), patch_artist=True,
-                         label='rh_budget_to_reach')
-    bplot3 = plt.boxplot(mrs_budget_to_reach.values(), patch_artist=True,
-                         label='mrs_budget_to_reach')
 
-    colors = ['pink', 'lightblue', 'lightgreen']
-    bplots = [bplot1, bplot2, bplot3]
-    for i in range(len(bplots)):
-        for patch, color in zip(bplots[i]['boxes'], repeat(colors[i])):
+    rr_budget_to_reach = {key: rr_budget_to_reach[key] for key in coverage_target_vals}
+    rh_budget_to_reach = {key: rh_budget_to_reach[key] for key in coverage_target_vals}
+    mrs_budget_to_reach = {key: mrs_budget_to_reach[key] for key in coverage_target_vals}
+
+    width = 0.1
+    p1 = [i - 1.5*width for i in ticks] 
+    p2 = [i for i in ticks] 
+    p3 = [i + 1.5*width for i in ticks]
+    
+    # import pdb; pdb.set_trace()
+    bp1 = plt.boxplot(rr_budget_to_reach.values(), patch_artist=True,
+                         boxprops=dict(facecolor="C0"), widths=width, positions=p1)
+    bp2 = plt.boxplot(rh_budget_to_reach.values(), patch_artist=True,
+                         boxprops=dict(facecolor="C1"), widths=width, positions=p2)
+    bp3 = plt.boxplot(mrs_budget_to_reach.values(), patch_artist=True,
+                         boxprops=dict(facecolor="C2"), widths=width, positions=p3)
+
+    plt.legend([bp1["boxes"][0], bp2["boxes"][0], bp3["boxes"][0]],
+               ['rr', 'rh', 'mrs'], loc='upper right')
+    # colors = ['pink', 'lightblue', 'lightgreen']
+    # bplots = [bplot1, bplot2, bplot3]
+    # for i in range(len(bplots)):
+        # for patch, color in zip(bplots[i]['boxes'], repeat(colors[i])):
             # import pdb; pdb.set_trace()
-            patch.set_facecolor(color)
+            # patch.set_facecolor(color)
     
     plt.xticks(ticks=ticks, labels=[str(i) for i in coverage_target_vals])
 
