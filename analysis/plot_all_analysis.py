@@ -80,25 +80,6 @@ if __name__ == '__main__':
     plt.savefig(f"reward_all.jpg")
 
     ### Time to reach a coverage plot ###
-
-    # corr_mean_budget = [0.]*len(coverage_target_vals)
-
-    # corr_budget = np.empty((number_of_reps, len(coverage_target_vals)))
-    # corr_budget[:] = np.nan
-
-    # # corr_budget = dict.fromkeys(coverage_target_vals, list())
-    # corr_budget = {k: [] for k in coverage_target_vals}
-    
-    # eps = 0.01 # allow 1% error margin ?
-    # for i in range(len(coverage_target_vals)): # over each target val
-    #     for j in range(len(coverage_vals)): # over reps
-    #         for k in range(len(label)): # over each budget step
-    #             a = abs(coverage_target_vals[i] - eps)
-    #             if coverage_vals[j][k] >= abs(coverage_target_vals[i] - eps):
-    #                 corr_budget[coverage_target_vals[i]].append(label[k])
-    #                 # corr_budget[j][i] = label[k]
-    #                 break
-
     plt.figure()
 
     coverage_target_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,]# 0.8, 0.9, 1.]
