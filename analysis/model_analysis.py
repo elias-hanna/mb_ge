@@ -27,26 +27,35 @@ from count_bins import getBinsReachable
 reachable_bins = 0
 
 def load_archive_data(folderpath):
-    params = None
-    # params = np.load(os.path.join(folderpath,'params.npz'))['arr_0']
+    params = np.load(os.path.join(folderpath,'params.npz'))['arr_0']
     descriptors = np.load(os.path.join(folderpath,'descriptors.npz'))['arr_0']
     prev_descriptors = np.load(os.path.join(folderpath,'prev_descriptors.npz'))['arr_0']
+    policy_horizon = np.load(os.path.join(folderpath,'policy_horizon.npz'))['arr_0']
 
-    return params, descriptors, prev_descriptors
+    return params, descriptors, prev_descriptors, policy_horizon
 
-def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute_policies=False):
+def reconstruct_elements(params, descriptors, prev_descriptors, gym_env,
+                         execute_policies=False, policy_horizon=None):
     # assert len(params) == len(descriptors) == len(prev_descriptors)
     assert len(descriptors) == len(prev_descriptors)
 
     loc_descriptors = descriptors.copy()
     loc_prev_descriptors = prev_descriptors.copy()
-    # loc_params = params.copy()
+    if execute_policies:
+        loc_params = params.copy()
+        loc_pi_h = policy_horizon.copy()
     
     elements = []
     leaf_elems = []
     current_ends = []
     # init_elem = Element(policy_parameters=params[0], descriptor=descriptors[0])
-    init_elem = Element(descriptor=descriptors[0])
+    el_params = None
+    el_traj = None
+    if execute_policies:
+        el_params = params[0]
+        el_traj = [0.]*round(policy_horizon[0])
+    init_elem = Element(descriptor=descriptors[0],
+                        policy_parameters=el_params, trajectory=el_traj)
     current_ends.append(init_elem)
     elements.append(init_elem)
 
@@ -56,10 +65,7 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
         nb_of_elems = len(loc_prev_descriptors)
         end = current_ends[0]
         # next_elems_indexes = np.unique(np.where((prev_descriptors == end.descriptor).all())[0])
-        # next_elems_indexes = np.unique(np.where((loc_prev_descriptors == end.descriptor))[0])
         next_elems_indexes = []
-        # print(len(prev_descriptors), len(loc_prev_descriptors))
-        # print('aadjdajda:', len(descriptors), len(loc_prev_descriptors))
         for i in range(1, nb_of_elems):
             if (end.descriptor == loc_prev_descriptors[i]).all():
                 next_elems_indexes.append(i)
@@ -69,63 +75,29 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
             leaf_elems.append(end)
         ## Iterate over all policies starting from this element
         for next_elem_index in next_elems_indexes:
-            ## Skip the init elem
-            # if next_elem_index == 0:
-                # continue
             ## Reconstruct the element
-            # elem = Element(policy_parameters=params[next_elem_index],
+            el_params = None
+            el_traj = None
+            if execute_policies:
+                el_params = loc_params[next_elem_index]
+                el_traj = [0.]*round(loc_pi_h[next_elem_index])
             elem = Element(descriptor=copy.copy(loc_descriptors[next_elem_index]),
-                           previous_element=end)
+                           previous_element=end, policy_parameters=el_params, trajectory=el_traj)
             elements.append(elem)
             current_ends.append(elem)
         ## Remove from local lists the elements that were reconstructed
-        # sorted_idx = sorted(next_elems_indexes, reverse=True)
-        # print('sorted_idx: ', sorted_idx)
         loc_prev_descriptors = np.delete(loc_prev_descriptors, next_elems_indexes, axis=0)
         loc_descriptors = np.delete(loc_descriptors, next_elems_indexes, axis=0)
-        # for idx in sorted_idx:
-        # for idx in next_elems_indexes:
-            # print('deleted {idx}') 
-            # np.delete(loc_prev_descriptors, idx)
-            # np.delete(loc_descriptors, idx)
+        if execute_policies:
+            loc_params = np.delete(loc_params, next_elems_indexes, axis=0)
+            loc_pi_h = np.delete(loc_pi_h, next_elems_indexes, axis=0)
         ## Remove the element whom children just got reconstructed
         current_ends.pop(0)
-        # print(len(elements)/nb_of_elems)
-    # while len(elements) < nb_of_elems:
-    #     while len(current_ends) != 0:
-    #         end = current_ends[0]
-    #         next_elems_indexes = np.unique(np.where(prev_descriptors == end.descriptor)[0])
-    #         ## Check if the element is a final one (no other policy starting from it)
-    #         if len(next_elems_indexes) == 0:
-    #             leaf_elems.append(end)
-    #         ## Iterate over all policies starting from this element
-    #         for next_elem_index in next_elems_indexes:
-    #             ## Skip the init elem
-    #             if next_elem_index == 0:
-    #                 continue
-    #             ## Reconstruct the element
-    #             # elem = Element(policy_parameters=params[next_elem_index],
-    #             elem = Element(descriptor=descriptors[next_elem_index],
-    #                            previous_element=end)
-    #             elements.append(elem)
-    #             current_ends.append(elem)
-    #         ## Remove the element whom children just got reconstructed
-    #         current_ends.pop(0)
-    #         print(len(elements)/nb_of_elems)
-
-    #     ## Quick fix need to look at above
-    #     iter_nums_i = list(range(len(elements)))
-    #     for i in iter_nums_i:
-    #         iter_nums_j = list(range(i+1,len(elements)))
-    #         for j in iter_nums_j:
-    #             if all(elements[i].descriptor == elements[j].descriptor):
-    #             # if all(elements[i].policy_parameters == elements[j].policy_parameters):
-    #                 elements.pop(j)
-    #                 iter_nums_i.pop()
-    #                 iter_nums_j.pop()
         
     if execute_policies:
-    ## Run all leaf elements so that we fill back fully each elem found
+        global g_params
+        controller = NeuralNetworkController(params=g_params)
+        ## Run all leaf elements so that we fill back fully each elem found
         for el in leaf_elems:
             gym_env.reset()
             ## reconstruct needed-policy chaining (deterministic-case)
@@ -141,7 +113,10 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
                 if prev_el.policy_parameters is not None:
                     policies_to_chain.insert(0, prev_el.policy_parameters)
                     len_under_policy.insert(0, len(prev_el.trajectory))
+                    print(prev_el.descriptor)
+                    print(prev_el.previous_element)
                     prev_el = prev_el.previous_element
+                    print(prev_el != None)
                     ## Replay policies from initial state to el goal state
             obs = gym_env.get_obs()
             ## Check if el is init elem
@@ -150,62 +125,16 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env, execute
                 transitions.append((None, obs))
                 return transitions, budget_used
             for policy_params, h in zip(policies_to_chain, len_under_policy):
-                self.controller.set_parameters(policy_params)
+                print(h)
+                controller.set_parameters(policy_params)
                 for _ in range(h):
-                    action = self.controller(obs)
+                    action = controller(obs)
                     transitions.append((action, obs))
+                    time.sleep(0.01)
                     obs, reward, done, info = gym_env.step(action)
                     budget_used += 1
             transitions.append((None, obs))
     return elements, leaf_elems
-
-# def reconstruct_elements2(params, descriptors, prev_descriptors, gym_env, execute_policies=False):
-#     # assert len(params) == len(descriptors) == len(prev_descriptors)
-#     assert len(descriptors) == len(prev_descriptors)
-#     nb_of_elems = len(descriptors)
-#     elements = []
-#     leaf_elems = []
-#     current_ends = []
-#     # init_elem = Element(policy_parameters=params[0], descriptor=descriptors[0])
-#     init_elem = Element(descriptor=descriptors[0])
-#     current_ends.append(init_elem)
-#     elements.append(init_elem)
-
-#     for i in range(len(descriptors)):
-
-#         for j in range(1, nb_of_elems):
-#             if (prev_descriptors[i] == descriptors[j]).all():
-#                 next_elems_indexes.append(i)
-                
-#         new_elem = Element(descriptor=descriptors[i],
-#                            previous_element=)
-
-#     while current_ends != []:
-#         end = current_ends[0]
-#         # next_elems_indexes = np.unique(np.where((prev_descriptors == end.descriptor).all())[0])
-#         # next_elems_indexes = np.unique(np.where((prev_descriptors == end.descriptor))[0])
-#         next_elems_indexes = []
-        
-#         for i in range(1, nb_of_elems):
-#             if (end.descriptor == prev_descriptors[i]).all():
-#                 next_elems_indexes.append(i)
-        
-#         ## Check if the element is a final one (no other policy starting from it)
-#         if len(next_elems_indexes) == 0:
-#             leaf_elems.append(end)
-#         ## Iterate over all policies starting from this element
-#         for next_elem_index in next_elems_indexes:
-#             ## Skip the init elem
-#             # if next_elem_index == 0:
-#                 # continue
-#             ## Reconstruct the element
-#             # elem = Element(policy_parameters=params[next_elem_index],
-#             elem = Element(descriptor=descriptors[next_elem_index],
-#                            previous_element=end)
-#             elements.append(elem)
-#             current_ends.append(elem)
-#         ## Remove the element whom children just got reconstructed
-#         current_ends.pop(0)
 
 def compute_coverage_and_reward_for_rep(rep_dir):
     global reachable_bins
@@ -228,13 +157,13 @@ def compute_coverage_and_reward_for_rep(rep_dir):
         iterpath = os.path.join(rep_path, iter_dir)
         print(f"Currently processing {iterpath}")
         
-        pi_params, descs, prev_descs = load_archive_data(iterpath)
-        
+        pi_params, descs, prev_descs, pi_h = load_archive_data(iterpath)
+
         gym_env = gym.make('BallInCup3d-v0')
-        
+
         reconstruct_start_time = time.time()
         elements, leaf_elems = reconstruct_elements(pi_params, descs, prev_descs, gym_env,
-                                                    execute_policies=False)
+                                                    execute_policies=True, policy_horizon=pi_h)
         print(f"Took {time.time()-reconstruct_start_time} second to reconstruct elements")
         
         archive = FixedGridArchive(params=params)
@@ -299,7 +228,7 @@ if __name__ == '__main__':
         'batch_size': 512,
         'learning_rate': 1e-3,
     }
-    params = \
+    g_params = \
     {
         'controller_type': NeuralNetworkController,
         'controller_params': controller_params,
@@ -336,8 +265,8 @@ if __name__ == '__main__':
         'dump_all_transitions': False,
     }
 
-    reachable_bins = getBinsReachable(params['fixed_grid_min'], params['fixed_grid_max'],
-                                             params['fixed_grid_div'])
+    reachable_bins = getBinsReachable(g_params['fixed_grid_min'], g_params['fixed_grid_max'],
+                                      g_params['fixed_grid_div'])
     rep_dirs = next(os.walk(folderpath))[1]
 
     number_of_reps = len(rep_dirs)
@@ -505,8 +434,8 @@ if __name__ == '__main__':
 
     for _ in range(nb_of_tests):
         ## Create models
-        compared_model = DynamicsModel(params=params)
-        perfect_model = DynamicsModel(params=params)
+        compared_model = DynamicsModel(params=g_params)
+        perfect_model = DynamicsModel(params=g_params)
 
         ## Add respective transitions to each DM
         for cmp_trs, perf_trs in zip(compared_model_transitions, perfect_model_transitions):
