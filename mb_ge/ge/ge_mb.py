@@ -32,6 +32,17 @@ class ModelBasedGoExplore(GoExplore):
         el.trajectory = trajectory[-self.h_exploration:]
         el.disagreement = 0. # no disagreement on this traj since we experienced it on real system
 
+    def _update(self, itr, budget_used, transitions):
+        prev_e = self.e
+        to_print = super()._update(itr, budget_used)
+        # Add samples to dynamics model trainer
+        self._dynamics_model.add_samples_from_transitions(transitions)
+        # Train the dynamics model
+        if self.e - prev_e != 0:
+            self._dynamics_model.train()
+
+        return to_print
+    
     def _exploration_phase(self):
         # reset gym environment
         obs = self.gym_env.reset()
@@ -46,29 +57,10 @@ class ModelBasedGoExplore(GoExplore):
         i_budget_used = 0
         done = False
 
-        budget_dump_cpt = 0
-        sim_budget_dump_cpt = 0
-
-        # Variable horizon variables
-        if self._use_variable_model_horizon:
-            e = 0
-            x = self._min_horizon
-            y = self._max_horizon
-            
-            a = self._horizon_starting_epoch
-            b = self._horizon_ending_epoch
-            next_target_budget = self.steps_per_epoch
+        self.budget_dump_cpt = 0
+        self.sim_budget_dump_cpt = 0
 
         while budget_used < self.budget and not done:
-            ## Update horizon length
-            if self._use_variable_model_horizon:
-                if e >= a: # normal case
-                    self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(y - x), x), y))
-                elif e < a:
-                    self.h_exploration = x
-                elif e > b:
-                    self.h_exploration = y
-
             b_used = 0
             sim_b_used = 0
             ## Reset environment
@@ -100,45 +92,18 @@ class ModelBasedGoExplore(GoExplore):
             sim_budget_used += sim_b_used
             unique_trs_observed = len(self.observed_transitions)
             itr += 1
-
-            # Train the dynamics model
-            self._dynamics_model.add_samples_from_transitions(transitions)
-            if itr % self.model_update_rate == 0:
-                self._dynamics_model.train()
                 
             # Verbose
             to_print = f'b_used: {budget_used} | i_b_used: {i_budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
             
-            # Update exploration horizon
-            if self._use_variable_model_horizon:
-                if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
-                    e += 1
-                elif self.epoch_mode == 'fixed_steps' and budget_used >= next_target_budget:
-                    e += 1
-                    next_target_budget += self.steps_per_epoch
-                elif self.epoch_mode == 'unique_fixed_steps':
-                    to_print += f'| unique_trs_observed: {unique_trs_observed} '
-                    if unique_trs_observed >= next_target_budget:
-                        e += 1
-                        next_target_budget += self.steps_per_epoch
-                to_print += f'| current_epoch: {e}'
-
+            # Update epoch, exploration horizon and model if relevant
+            to_print += self._update(itr, budget_used, transitions)
             # Dump data
-            # if itr % self.dump_rate == 0:
-                # self.state_archive.dump_archive(self.dump_path, budget_used, itr)
-            if budget_used >= self._dump_checkpoints[budget_dump_cpt]:
-                self.state_archive.dump_archive(self.dump_path, budget_used,
-                                                self._dump_checkpoints[budget_dump_cpt])
-                budget_dump_cpt += 1
-
-            if sim_budget_used >= self._dump_checkpoints[sim_budget_dump_cpt]:
-                self.state_archive.dump_archive(self.dump_path, sim_budget_used,
-                                                'sim'+str(self._dump_checkpoints[sim_budget_dump_cpt]))
-                sim_budget_dump_cpt += 1
-            # Actually print
+            self._dump(itr, budget_used, sim_budget_used)
+            # Print
             print(to_print)
 
-        self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
+        # self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
 
         if len(self.observed_transitions) > 1 and self.dump_all_transitions:
             np.save(f'all_transitions_{self.budget}', np.array(self.observed_transitions))

@@ -19,24 +19,32 @@ class GoExplore():
         self.action_space_dim = self.gym_env.action_space.shape[0]
         self.observation_space_dim = self.gym_env.observation_space.shape[0]
         self.observed_transitions = []
+        ## Update params
+        self.e = 0 # current epoch (1 epoch = 1 model update and potential horizon update)
+        self.next_target_budget = self.steps_per_epoch
 
     def _process_params(self, params):
+        ## Algorithm params
         if 'budget' in params:
             self.budget = params['budget']
         if 'exploration_horizon' in params:
             self.h_exploration = params['exploration_horizon']
         if 'controller_type' in params:
             self.controller_type = params['controller_type']
-        if 'dump_all_transitions' in params:
-            self.dump_all_transitions = params['dump_all_transitions']
-        if 'dump_rate' in params:
-            self.dump_rate = params['dump_rate']
+        ## Epoch mode params
+        if 'epoch_mode' in params:
+            self.epoch_mode = params['epoch_mode']
         else:
-            self.dump_rate = 100
-        if 'dump_checkpoints' in params:
-            self._dump_checkpoints = params['dump_checkpoints']
+            self.epoch_mode = 'None'
+        if 'model_update_rate' in params:
+            self.model_update_rate = params['model_update_rate']
         else:
-            raise Exception('GoExplore _process_params error: dump_checkpoints not in params')
+            self.model_update_rate = 10
+        if 'steps_per_epoch' in params:
+            self.steps_per_epoch = params['steps_per_epoch']
+        else:
+            self.steps_per_epoch = 1000
+        ## Variable horizon params
         if 'use_variable_model_horizon' in params:
             self._use_variable_model_horizon = params['use_variable_model_horizon']
             if self._use_variable_model_horizon:
@@ -56,24 +64,25 @@ class GoExplore():
                     self._horizon_ending_epoch = params['horizon_ending_epoch']
                 else:
                     raise Exception('GoExplore _process_params error: horizon_ending_epoch not in params')
-                if 'model_update_rate' in params:
-                    self.model_update_rate = params['model_update_rate']
-                else:
-                    self.model_update_rate = 10
-                if 'steps_per_epoch' in params:
-                    self.steps_per_epoch = params['steps_per_epoch']
-                else:
-                    self.steps_per_epoch = 1000
-        if 'epoch_mode' in params:
-                    self.epoch_mode = params['epoch_mode']
-        else:
-            self.epoch_mode = 'None'
+                self.h_exploration = self._min_horizon
+
+        ## Dump params
         if 'dump_path' in params:
             self.dump_path = params['dump_path']
         else:
             import os
             curr_dir = os.getcwd()
             self.dump_path = curr_dir
+        if 'dump_all_transitions' in params:
+            self.dump_all_transitions = params['dump_all_transitions']
+        if 'dump_rate' in params:
+            self.dump_rate = params['dump_rate']
+        else:
+            self.dump_rate = 100
+        if 'dump_checkpoints' in params:
+            self._dump_checkpoints = params['dump_checkpoints']
+        else:
+            raise Exception('GoExplore _process_params error: dump_checkpoints not in params')
             
     def append_new_transitions(self, transitions):
         A = []
@@ -92,7 +101,51 @@ class GoExplore():
             tmp[0:len(self.observed_transitions)] = self.observed_transitions
         tmp[len(self.observed_transitions):len(self.observed_transitions) + len(new_trs)] = new_trs
         self.observed_transitions = np.unique(tmp, axis=0)
-                
+
+    def _update(self, itr, budget_used):
+        to_print = ''
+        # Update exploration horizon
+        # if self._use_variable_model_horizon:
+
+        if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
+            self.e += 1
+        elif self.epoch_mode == 'fixed_steps' and budget_used >= self.next_target_budget:
+            self.e += 1
+            self.next_target_budget += self.steps_per_epoch
+        elif self.epoch_mode == 'unique_fixed_steps':
+            to_print += f'| unique_trs_observed: {unique_trs_observed} '
+            if unique_trs_observed >= self.next_target_budget:
+                self.e += 1
+                self.next_target_budget += self.steps_per_epoch
+        to_print += f'| current_epoch: {self.e}'
+        
+        if self._use_variable_model_horizon:
+            x = self._min_horizon
+            y = self._max_horizon
+            a = self._horizon_starting_epoch
+            b = self._horizon_ending_epoch
+            
+            if self.e >= a: # normal case
+                self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(y - x), x), y))
+            elif self.e < a:
+                self.h_exploration = x
+            elif self.e > b:
+                self.h_exploration = y
+
+        return to_print
+
+    def _dump(self, itr, budget_used, sim_budget_used):
+        if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
+            self.state_archive.dump_archive(self.dump_path, budget_used,
+                                            self._dump_checkpoints[self.budget_dump_cpt])
+            self.budget_dump_cpt += 1
+
+        if sim_budget_used >= self._dump_checkpoints[self.sim_budget_dump_cpt]:
+            self.state_archive.dump_archive(self.dump_path, sim_budget_used,
+                                            'sim_'+
+                                            str(self._dump_checkpoints[self.sim_budget_dump_cpt]))
+            self.sim_budget_dump_cpt += 1
+        
     def _exploration_phase(self):
         ## reset gym environment
         obs = self.gym_env.reset()
@@ -106,29 +159,10 @@ class GoExplore():
         sim_budget_used = 0
         done = False
 
-        budget_dump_cpt = 0
-        sim_budget_dump_cpt = 0
-
-        # Variable horizon variables
-        if self._use_variable_model_horizon:
-            e = 0
-            x = self._min_horizon
-            y = self._max_horizon
-            
-            a = self._horizon_starting_epoch
-            b = self._horizon_ending_epoch
-            next_target_budget = self.steps_per_epoch
+        self.budget_dump_cpt = 0
+        self.sim_budget_dump_cpt = 0
             
         while budget_used < self.budget and not done:
-            ## Update horizon length
-            if self._use_variable_model_horizon:
-                if e >= a: # normal case
-                    self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(y - x), x), y))
-                elif e < a:
-                    self.h_exploration = x
-                elif e > b:
-                    self.h_exploration = y
-
             b_used = 0
             sim_b_used = 0
             ### OLD WAY closer to GE ###
@@ -155,6 +189,7 @@ class GoExplore():
             ## Explore from the selected state
             elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
             # import pdb; pdb.set_trace()
+            
             b_used += (sel_el_go_b)*len(elements) + b_used_expl
             sim_b_used += len(elements)*self.h_exploration
             # Select a state to add to archive from the exploration elements
@@ -180,36 +215,14 @@ class GoExplore():
             # Verbose
             to_print = f'b_used: {budget_used} | total_b: {self.budget} | current_exploration_horizon: {self.h_exploration} '
 
-            # Update exploration horizon
-            if self._use_variable_model_horizon:
-                if self.epoch_mode == 'model_update' and itr % self.model_update_rate == 0:
-                    e += 1
-                elif self.epoch_mode == 'fixed_steps' and budget_used >= next_target_budget:
-                    e += 1
-                    next_target_budget += self.steps_per_epoch
-                elif self.epoch_mode == 'unique_fixed_steps':
-                    to_print += f'| unique_trs_observed: {unique_trs_observed} '
-                    if unique_trs_observed >= next_target_budget:
-                        e += 1
-                        next_target_budget += self.steps_per_epoch
-                to_print += f'| current_epoch: {e}'
-
+            # Update epoch, exploration horizon and model if relevant 
+            to_print += self._update(itr, budget_used)
             # Dump data
-            # if itr%self.dump_rate == 0:
-                # self.state_archive.dump_archive(self.dump_path, budget_used, itr)
-            if budget_used >= self._dump_checkpoints[budget_dump_cpt]:
-                self.state_archive.dump_archive(self.dump_path, budget_used,
-                                                self._dump_checkpoints[budget_dump_cpt])
-                budget_dump_cpt += 1
-
-            if sim_budget_used >= self._dump_checkpoints[sim_budget_dump_cpt]:
-                self.state_archive.dump_archive(self.dump_path, sim_budget_used,
-                                                'sim'+str(self._dump_checkpoints[sim_budget_dump_cpt]))
-                sim_budget_dump_cpt += 1
-            # Actually print
+            self._dump(itr, budget_used, sim_budget_used)
+            # Print
             print(to_print)
 
-        self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
+        # self.state_archive.dump_archive(self.dump_path, budget_used, 'final')
 
         if len(self.observed_transitions) > 1 and self.dump_all_transitions:
             np.savez_compressed(f'{self.dump_path}/results_final/all_transitions_{self.budget}',
