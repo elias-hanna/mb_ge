@@ -86,6 +86,10 @@ class DynamicsModel():
                 self._learning_rate = params['dynamics_model_params']['learning_rate']
             else:
                 raise Exception('DynamicsModel _process_params error: learning_rate not in params')
+            if 'train_unique_trans' in params['dynamics_model_params']:
+                self._learning_rate = params['dynamics_model_params']['train_unique_trans']
+            else:
+                raise Exception('DynamicsModel _process_params error: train_unique_trans not in params')
         else:
             raise Exception('DynamicsModel _process_params error: dynamics_model_params not in params')
 
@@ -159,6 +163,7 @@ class DynamicsModel():
         self._dynamics_model_trainer.train_from_buffer(self._replay_buffer,
                                                        holdout_pct=0.1,
                                                        max_grad_steps=100000,
+                                                       # epochs_since_last_update=10,
                                                        use_unique_transitions=True)
         self._dynamics_model_trainer.end_epoch(0) ## weird idk why they did it that way
         if verbose:

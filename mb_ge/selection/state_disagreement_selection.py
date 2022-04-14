@@ -29,7 +29,34 @@ class StateDisagreementSelection(SelectionMethod):
             self._action_dim = params['dynamics_model_params']['action_dim']
         else:
             raise Exception('StateDisagreementSelection _process_params error: action_dim not in params')
-        
+
+    def _batch_eval_all_elements(self, elements):
+        actions = np.random.uniform(low=-1, high=1,
+                                    size=(self.nb_of_samples_per_state, self._action_dim))
+
+        A = np.tile(actions, (len(elements), 1))
+
+        all_s = []
+        # Get all states to estimate uncertainty for
+        for element in elements:
+            all_s.append(element.trajectory[-1])
+        S = np.repeat(all_s, self.nb_of_samples_per_state, axis=0)
+        # Batch prediction
+        batch_pred_delta_ns, batch_disagreement = self._model.forward_multiple(A, S, mean=True,
+                                                                               disagr=True)
+        mean_disagrs = []
+        for i in range(len(elements)):
+            el_disagrs = batch_disagreement[i*self.nb_of_samples_per_state:
+                                            i*self.nb_of_samples_per_state+
+                                            self.nb_of_samples_per_state]
+            
+            mean_disagrs.append(np.mean([np.mean(disagr.detach().numpy()) for disagr in el_disagrs]))
+        try:
+            elements_ordered = [el for _, el in sorted(zip(mean_disagrs, elements), reverse=True)]
+        except Exception as e:
+            import pdb; pdb.set_trace()
+        return elements_ordered
+                
     def select_element_from_cell_archive(self, archive):
         # most_disagreed_elements = []
         # for cell in archive._archive.values():
@@ -39,7 +66,8 @@ class StateDisagreementSelection(SelectionMethod):
         all_elements = []
         for cell in archive._archive.values():
             all_elements += cell._elements
-        all_elements_ordered = self.get_ordered_element_list(all_elements)
+        all_elements_ordered = self._batch_eval_all_elements(all_elements)
+        # all_elements_ordered = self.get_ordered_element_list(all_elements)
         for selected_element in all_elements_ordered:
             if self._horizon_check(selected_element):
                 return selected_element

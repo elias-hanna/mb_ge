@@ -24,6 +24,8 @@ class FixedGridArchive(Archive):
             self._grid_div = params['fixed_grid_div']
         else:
             raise Exception('FixedGridArchive _process_params error: fixed_grid_div not in params')
+        if 'single_element_per_cell' in params:
+            self._single_element_per_cell = params['single_element_per_cell']
         if 'archive_type' in params:
             self._archive_type = params['archive_type']
             if self._archive_type not in ['element', 'cell']:
@@ -33,7 +35,8 @@ class FixedGridArchive(Archive):
             raise Exception('FixedGridArchive _process_params error: archive_type not in params')
 
     def compare(self, element1, element2):
-        if element1.reward > element2.reward or len(element1.trajectory)<len(element2.trajectory):
+        if element1.reward > element2.reward or \
+           element1.total_trajectory_len < element2.total_trajectory_len:
             return 1
         return 0
     
@@ -51,7 +54,13 @@ class FixedGridArchive(Archive):
         
         if archive_index_str in self._archive: ## Case archive already exists at index
             if self._archive_type == 'cell':
-                self._archive[archive_index_str].add(element)
+                self._archive[archive_index_str].visit_count += 1
+                if self._single_element_per_cell:
+                    if self.compare(element, self._archive[archive_index_str]._elements[0]):
+                        self._archive[archive_index_str] = []
+                        self._archive[archive_index_str].add(element)
+                else:
+                    self._archive[archive_index_str].add(element)
             elif self._archive_type == 'element':
                 if self.compare(element, self._archive[archive_index_str]):
                     self._archive[archive_index_str] = element

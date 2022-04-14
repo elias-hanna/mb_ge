@@ -36,6 +36,8 @@ def load_archive_data(folderpath):
 
 def reconstruct_elements(params, descriptors, prev_descriptors, gym_env,
                          execute_policies=False, policy_horizon=None):
+    global g_params
+
     # assert len(params) == len(descriptors) == len(prev_descriptors)
     assert len(descriptors) == len(prev_descriptors)
 
@@ -95,7 +97,6 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env,
         current_ends.pop(0)
         
     if execute_policies:
-        global g_params
         controller = NeuralNetworkController(params=g_params)
         ## Run all leaf elements so that we fill back fully each elem found
         for el in leaf_elems:
@@ -137,7 +138,7 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env,
     return elements, leaf_elems
 
 def compute_coverage_and_reward_for_rep(rep_dir):
-    global reachable_bins
+    global reachable_bins, g_params
     coverages = []
     rewarding_pi_count = []
     
@@ -163,10 +164,10 @@ def compute_coverage_and_reward_for_rep(rep_dir):
 
         reconstruct_start_time = time.time()
         elements, leaf_elems = reconstruct_elements(pi_params, descs, prev_descs, gym_env,
-                                                    execute_policies=True, policy_horizon=pi_h)
+                                                    execute_policies=False, policy_horizon=pi_h)
         print(f"Took {time.time()-reconstruct_start_time} second to reconstruct elements")
         
-        archive = FixedGridArchive(params=params)
+        archive = FixedGridArchive(params=g_params)
         
         reconstruct_start_time = time.time()            
         for el in elements:
