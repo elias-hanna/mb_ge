@@ -57,7 +57,8 @@ class FixedGridArchive(Archive):
                 self._archive[archive_index_str].visit_count += 1
                 if self._single_element_per_cell:
                     if self.compare(element, self._archive[archive_index_str]._elements[0]):
-                        self._archive[archive_index_str] = []
+                        self._archive[archive_index_str]._elements = []
+                        print('replacing elem')
                         self._archive[archive_index_str].add(element)
                 else:
                     self._archive[archive_index_str].add(element)

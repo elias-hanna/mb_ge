@@ -70,6 +70,40 @@ class ModelBasedGoExplore(GoExplore):
             # Go to and Explore in imagination from the selected state
             i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
                                                             self.h_exploration, eval_on_model=True)
+
+            # Update novelty
+            self._update_novelty(i_elements, no_add=True)
+            
+            if budget_used+300 >= self._dump_checkpoints[self.budget_dump_cpt]:
+                disagr = []
+                novelty = []
+                for el in i_elements:
+                    disagr.append(np.mean([np.mean(disagr.detach().numpy())
+                                           for disagr in el.disagreement]))
+                    novelty.append(el.novelty)
+                    disagr[-1] = round(disagr[-1], 3)
+                    novelty[-1] = round(novelty[-1], 3)
+                    
+                import pdb; pdb.set_trace()
+                import kneed
+                import matplotlib.pyplot as plt
+                ## Sort by nov
+                # sorted_pairs = sorted(zip(novelty, disagr))
+                # tuples = zip(*sorted_pairs)
+                # s_nov, s_disagr = [list(t) for t in tuples] 
+                # kneedle = kneed.KneeLocator(s_nov, s_disagr)
+                # plt.ylabel('Mean disagreeement along trajectory')
+                # plt.xlabel('Novelty')
+                ## Sort by disagr
+                sorted_pairs = sorted(zip(disagr, novelty))
+                tuples = zip(*sorted_pairs)
+                s_disagr, s_nov = [list(t) for t in tuples] 
+                kneedle = kneed.KneeLocator(s_disagr, s_nov, curve='concave', direction='increasing')#, interp_method='polynomial')
+                kneedle.plot_knee_normalized()
+                plt.xlabel('Mean disagreeement along trajectory')
+                plt.ylabel('Novelty')
+                plt.show()
+
             # Select a state to go to from states found in imagination
             sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go to the selected state on real system
@@ -78,7 +112,10 @@ class ModelBasedGoExplore(GoExplore):
             sim_b_used += self.h_exploration
             # Correct sel_i_el to have the right trajectory
             self._correct_el(sel_i_el, transitions)
-            
+
+            # Update novelty
+            self._update_novelty([sel_i_el])
+
             # Update archive and other datasets
             self.state_archive.add(sel_i_el)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL

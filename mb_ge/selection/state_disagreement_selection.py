@@ -63,9 +63,10 @@ class StateDisagreementSelection(SelectionMethod):
         #     most_disagreed_elements.append(self.select_element_from_element_list(cell._elements))
         # return self.select_element_from_element_list(most_disagreed_elements)
     
-        all_elements = []
-        for cell in archive._archive.values():
-            all_elements += cell._elements
+        # all_elements = []
+        # for cell in archive._archive.values():
+            # all_elements += cell._elements
+        all_elements = archive.get_all_elements()
         all_elements_ordered = self._batch_eval_all_elements(all_elements)
         # all_elements_ordered = self.get_ordered_element_list(all_elements)
         for selected_element in all_elements_ordered:

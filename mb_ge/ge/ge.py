@@ -2,6 +2,12 @@ import numpy as np
 from mb_ge.utils.element import Element
 import os
 import copy
+from sklearn.neighbors import KDTree
+
+archive_list = []
+
+archive_nb_to_add = 6
+nb_nearest_neighbors = 15
 
 class GoExplore():
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
@@ -22,6 +28,9 @@ class GoExplore():
         ## Update params
         self.e = 0 # current epoch (1 epoch = 1 model update and potential horizon update)
         self.next_target_budget = self.steps_per_epoch
+        self._archive_bd_list = []
+        self._archive_nb_to_add = 6
+        self._nb_nearest_neighbors = 15
 
     def _process_params(self, params):
         ## Algorithm params
@@ -38,6 +47,10 @@ class GoExplore():
             self.epoch_mode = 'None'
         if 'model_update_rate' in params:
             self.model_update_rate = params['model_update_rate']
+        else:
+            self.model_update_rate = 10
+        if 'nb_eval_exploration' in params:
+            self.nb_eval_exploration = params['nb_eval_exploration']
         else:
             self.model_update_rate = 10
         if 'steps_per_epoch' in params:
@@ -134,6 +147,27 @@ class GoExplore():
 
         return to_print
 
+    def _update_novelty(self, new_elements, no_add=False):
+        gen_bd_list = []
+        for new_el in new_elements:
+            gen_bd_list.append(new_el.descriptor)
+            # self._archive_bd_list.append(new_el.descriptor)
+        archive_kdt = KDTree(self._archive_bd_list + gen_bd_list, leaf_size=30, metric='euclidean')
+
+        if not no_add:
+            self._archive_bd_list += gen_bd_list
+            
+        all_elements = self.state_archive.get_all_elements()
+
+        all_elements += new_elements
+
+        if len(self._archive_bd_list) > self._nb_nearest_neighbors:
+            for el in all_elements:
+                ## Get k-nearest neighbours to this ind
+                k_dists, k_indexes = archive_kdt.query([el.descriptor],
+                                                       k=self._nb_nearest_neighbors)
+                el.novelty = sum(k_dists[0])/self._nb_nearest_neighbors
+
     def _dump(self, itr, budget_used, sim_budget_used):
         if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
             self.state_archive.dump_archive(self.dump_path, budget_used,
@@ -189,13 +223,15 @@ class GoExplore():
             ## Explore from the selected state
             elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
             # import pdb; pdb.set_trace()
+            self._update_novelty(elements)
             
             b_used += (sel_el_go_b)*len(elements) + b_used_expl
             sim_b_used += len(elements)*self.h_exploration
             # Select a state to add to archive from the exploration elements
-            nb_of_el_to_add = 10
+            nb_of_el_to_add = self.nb_eval_exploration
             sel_els = self._cell_selection_method.select_element_from_element_list(elements,
                                                                                    nb_of_el_to_add)
+
             
             ## Update archive and other datasets
             for sel_el in sel_els:

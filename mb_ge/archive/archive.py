@@ -25,6 +25,12 @@ class Archive():
         """
         raise NotImplementedError
 
+    def get_all_elements(self):
+        all_elements = []
+        for cell in self._archive.values():
+            all_elements += cell._elements
+        return all_elements
+        
     @abstractmethod
     def compare(self, element1, element2):
         """
