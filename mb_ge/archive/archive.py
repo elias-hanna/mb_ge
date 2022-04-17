@@ -132,6 +132,7 @@ class Archive():
         x = []
         y = []
         z = []
+        disagrs = []
         ## Add the BD data from archive:
         for key in self._archive.keys():
             elements = self._archive[key].get_elements()
@@ -139,8 +140,12 @@ class Archive():
                 x.append(el.descriptor[0])
                 y.append(el.descriptor[1])
                 z.append(el.descriptor[2])
-
-        ax.scatter(x, y, z)  
+                disagrs.append(el.mean_disagr)
+                
+        if mode == '3d':
+            ax.scatter(x, y, z)
+        elif mode == '3d-cmap':
+            ax.scatter(x, y, z, c=disagrs)
         plt.gca().invert_zaxis()
         plt.savefig(f"{self.dump_path}/results_{itr}/state_archive_at_{curr_budget}_eval", bbox_inches='tight')
         if show:

@@ -51,6 +51,7 @@ class StateDisagreementSelection(SelectionMethod):
                                             self.nb_of_samples_per_state]
             
             mean_disagrs.append(np.mean([np.mean(disagr.detach().numpy()) for disagr in el_disagrs]))
+            elements[i].mean_disagr = mean_disagrs[-1]
         try:
             elements_ordered = [el for _, el in sorted(zip(mean_disagrs, elements), reverse=True)]
         except Exception as e:

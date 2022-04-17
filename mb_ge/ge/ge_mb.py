@@ -77,12 +77,20 @@ class ModelBasedGoExplore(GoExplore):
             if budget_used+300 >= self._dump_checkpoints[self.budget_dump_cpt]:
                 disagr = []
                 novelty = []
+                ## Warning need to filter dominated solutions
                 for el in i_elements:
-                    disagr.append(np.mean([np.mean(disagr.detach().numpy())
-                                           for disagr in el.disagreement]))
-                    novelty.append(el.novelty)
-                    disagr[-1] = round(disagr[-1], 3)
-                    novelty[-1] = round(novelty[-1], 3)
+                    loc_d = round(np.mean([np.mean(disagr.detach().numpy())
+                                           for disagr in el.disagreement]),3)
+                    loc_n = round(el.novelty, 3)
+                    dominated = False
+                    for i in range(len(disagr)):
+                        if loc_d < disagr[i] and loc_n < novelty[i]:
+                            dominated = True
+                            break
+                    if not dominated:
+                        disagr.append(loc_d)
+                        novelty.append(loc_n)
+                        
                     
                 import pdb; pdb.set_trace()
                 import kneed
