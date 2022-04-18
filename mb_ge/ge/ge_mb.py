@@ -75,7 +75,8 @@ class ModelBasedGoExplore(GoExplore):
             self._update_novelty(i_elements, no_add=True)
             
             # if budget_used+300 >= self._dump_checkpoints[self.budget_dump_cpt]:
-            if budget_used >= 500 and len(self._archive_bd_list) > self._nb_nearest_neighbors:
+            # if budget_used >= 500 and len(self._archive_bd_list) > self._nb_nearest_neighbors:
+            if False:
                 disagr = []
                 novelty = []
                 ## Warning need to filter dominated solutions
@@ -102,9 +103,6 @@ class ModelBasedGoExplore(GoExplore):
                         non_dominated_disagr.append(loc_d)
                         non_dominated_novelty.append(loc_n)
                     
-                # import pdb; pdb.set_trace()
-                print('non dom disagr: ', len(non_dominated_disagr))
-                print('non dom nov: ', len(non_dominated_novelty))
                 import kneed
                 import matplotlib.pyplot as plt
                 ## Sort by nov

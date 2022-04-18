@@ -31,7 +31,9 @@ class GoExplore():
         self._archive_bd_list = []
         self._archive_nb_to_add = 6
         self._nb_nearest_neighbors = 15
-
+        self._dump_coverage = []
+        self._dump_budget = []
+        
     def _process_params(self, params):
         ## Algorithm params
         if 'budget' in params:
@@ -169,7 +171,12 @@ class GoExplore():
                 el.novelty = sum(k_dists[0])/self._nb_nearest_neighbors
 
     def _dump(self, itr, budget_used, sim_budget_used):
+        self._dump_coverage.append(len(self.state_archive._archive.keys()))
+        self._dump_budget.append(budget_used)
         if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
+            os.makedirs(self.dump_path, exist_ok=True)
+            path_to_file = os.path.join(self.dump_path, 'coverage_data.npz')
+            np.savez(path_to_file, cells=self._dump_coverage, budget=self._dump_budget)
             self.state_archive.dump_archive(self.dump_path, budget_used,
                                             self._dump_checkpoints[self.budget_dump_cpt])
             self.budget_dump_cpt += 1
