@@ -5,12 +5,19 @@ if __name__ == '__main__':
     from mb_ge.selection.mean_disagreement_selection import MeanDisagreementSelection
     from mb_ge.selection.max_disagreement_selection import MaxDisagreementSelection
     from mb_ge.selection.state_disagreement_selection import StateDisagreementSelection
+    from mb_ge.selection.pareto_front_selection import ParetoFrontSelection
+
     from mb_ge.go.execute_policy_go import ExecutePolicyGo
+
     from mb_ge.exploration.random_exploration import RandomExploration
     from mb_ge.exploration.ns_exploration import NoveltySearchExploration
+
     from mb_ge.archive.fixed_grid_archive import FixedGridArchive
+
     from mb_ge.models.dynamics_model import DynamicsModel
+
     from mb_ge.controller.nn_controller import NeuralNetworkController
+
     from mb_ge.ge.ge import GoExplore
     from mb_ge.ge.ge_mb import ModelBasedGoExplore
     
@@ -44,6 +51,8 @@ if __name__ == '__main__':
         cell_selection_method = HeuristicSelection
     elif args.cell_selection == 'statedisagr':
         cell_selection_method = StateDisagreementSelection
+    elif args.cell_selection == 'paretofront':
+        cell_selection_method = ParetoFrontSelection
 
     if args.transfer_selection == 'random':
         transfer_selection_method = RandomSelection
@@ -53,6 +62,8 @@ if __name__ == '__main__':
         transfer_selection_method = MaxDisagreementSelection
     elif args.transfer_selection == 'statedisagr':
         transfer_selection_method = StateDisagreementSelection
+    elif args.transfer_selection == 'paretofront':
+        transfer_selection_method = ParetoFrontSelection
 
     if args.exploration == 'random':
         exploration_method = RandomExploration
@@ -112,7 +123,7 @@ if __name__ == '__main__':
         'single_element_per_cell': True,
         'fixed_grid_min': -0.5,
         'fixed_grid_max': 0.5,
-        'fixed_grid_div': 30,
+        'fixed_grid_div': 50,
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,

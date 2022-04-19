@@ -230,7 +230,7 @@ class GoExplore():
             ## Explore from the selected state
             elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
             # import pdb; pdb.set_trace()
-            self._update_novelty(elements)
+            self._update_novelty(elements, no_add=True)
             
             b_used += (sel_el_go_b)*len(elements) + b_used_expl
             sim_b_used += len(elements)*self.h_exploration
@@ -243,6 +243,8 @@ class GoExplore():
             ## Update archive and other datasets
             for sel_el in sel_els:
                 self.state_archive.add(sel_el)
+
+            self._update_novelty(sel_els)
             
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
             if len(transitions) > 1 and (self.dump_all_transitions

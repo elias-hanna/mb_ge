@@ -76,56 +76,56 @@ class ModelBasedGoExplore(GoExplore):
             
             # if budget_used+300 >= self._dump_checkpoints[self.budget_dump_cpt]:
             # if budget_used >= 500 and len(self._archive_bd_list) > self._nb_nearest_neighbors:
-            if False:
-                disagr = []
-                novelty = []
-                ## Warning need to filter dominated solutions
-                for el in i_elements:
-                    # loc_d = round(np.mean([np.mean(disagr.detach().numpy())
-                                           # for disagr in el.disagreement]),3)
-                    # loc_n = round(el.novelty, 3)
-                    loc_d = np.mean([np.mean(disagr.detach().numpy())
-                                     for disagr in el.disagreement])
-                    loc_n = el.novelty
-                    disagr.append(loc_d)
-                    novelty.append(loc_n)
-                non_dominated_disagr = []
-                non_dominated_novelty = []
-                for i in range(len(disagr)):
-                    dominated = False
-                    loc_d = disagr[i]
-                    loc_n = novelty[i]
-                    for j in range(len(disagr)):
-                        if loc_d < disagr[j] and loc_n < novelty[j]:
-                            dominated = True
-                            break
-                    if not dominated:
-                        non_dominated_disagr.append(loc_d)
-                        non_dominated_novelty.append(loc_n)
+            # if False:
+            #     disagr = []
+            #     novelty = []
+            #     ## Warning need to filter dominated solutions
+            #     for el in i_elements:
+            #         # loc_d = round(np.mean([np.mean(disagr.detach().numpy())
+            #                                # for disagr in el.disagreement]),3)
+            #         # loc_n = round(el.novelty, 3)
+            #         loc_d = np.mean([np.mean(disagr.detach().numpy())
+            #                          for disagr in el.disagreement])
+            #         loc_n = el.novelty
+            #         disagr.append(loc_d)
+            #         novelty.append(loc_n)
+            #     non_dominated_disagr = []
+            #     non_dominated_novelty = []
+            #     for i in range(len(disagr)):
+            #         dominated = False
+            #         loc_d = disagr[i]
+            #         loc_n = novelty[i]
+            #         for j in range(len(disagr)):
+            #             if loc_d < disagr[j] and loc_n < novelty[j]:
+            #                 dominated = True
+            #                 break
+            #         if not dominated:
+            #             non_dominated_disagr.append(loc_d)
+            #             non_dominated_novelty.append(loc_n)
                     
-                import kneed
-                import matplotlib.pyplot as plt
-                ## Sort by nov
-                # sorted_pairs = sorted(zip(novelty, disagr))
-                # tuples = zip(*sorted_pairs)
-                # s_nov, s_disagr = [list(t) for t in tuples] 
-                # kneedle = kneed.KneeLocator(s_nov, s_disagr)
-                # plt.ylabel('Mean disagreeement along trajectory')
-                # plt.xlabel('Novelty')
-                ## Sort by disagr
-                # sorted_pairs = sorted(zip(disagr, novelty))
-                if len(non_dominated_disagr) >= 2:
-                    try:
-                        sorted_pairs = sorted(zip(non_dominated_disagr, non_dominated_novelty))
-                        tuples = zip(*sorted_pairs)
-                        s_disagr, s_nov = [list(t) for t in tuples] 
-                        kneedle = kneed.KneeLocator(s_disagr, s_nov, curve='concave', direction='increasing')#, interp_method='polynomial')
-                        kneedle.plot_knee_normalized()
-                        plt.xlabel('Mean disagreeement along trajectory')
-                        plt.ylabel('Novelty')
-                        # plt.show()
-                    except Exception as e:
-                        import pdb; pdb.set_trace()
+            #     import kneed
+            #     import matplotlib.pyplot as plt
+            #     ## Sort by nov
+            #     # sorted_pairs = sorted(zip(novelty, disagr))
+            #     # tuples = zip(*sorted_pairs)
+            #     # s_nov, s_disagr = [list(t) for t in tuples] 
+            #     # kneedle = kneed.KneeLocator(s_nov, s_disagr)
+            #     # plt.ylabel('Mean disagreeement along trajectory')
+            #     # plt.xlabel('Novelty')
+            #     ## Sort by disagr
+            #     # sorted_pairs = sorted(zip(disagr, novelty))
+            #     if len(non_dominated_disagr) >= 2:
+            #         try:
+            #             sorted_pairs = sorted(zip(non_dominated_disagr, non_dominated_novelty))
+            #             tuples = zip(*sorted_pairs)
+            #             s_disagr, s_nov = [list(t) for t in tuples] 
+            #             kneedle = kneed.KneeLocator(s_disagr, s_nov, curve='concave', direction='increasing')#, interp_method='polynomial')
+            #             kneedle.plot_knee_normalized()
+            #             plt.xlabel('Mean disagreeement along trajectory')
+            #             plt.ylabel('Novelty')
+            #             # plt.show()
+            #         except Exception as e:
+            #             import pdb; pdb.set_trace()
             # Select a state to go to from states found in imagination
             sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go to the selected state on real system

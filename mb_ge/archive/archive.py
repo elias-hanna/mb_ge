@@ -85,7 +85,6 @@ class Archive():
             count = 0
             for key in self._archive.keys():
                 for el in self._archive[key]._elements:
-                    # import pdb; pdb.set_trace()
                     descriptors[count, :] = copy.copy(el.descriptor)
                     if el.previous_element is not None:
                         prev_descriptors[count, :] = copy.copy(el.previous_element.descriptor)

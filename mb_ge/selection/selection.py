@@ -21,6 +21,7 @@ class SelectionMethod():
     @abstractmethod
     def select_element_from_cell_archive(self, archive):
         """
+        Usually used to select which state to explore from.
         Args: 
             archive: Archive to draw an cell (key) from. Must be of class Archive
         
@@ -32,6 +33,7 @@ class SelectionMethod():
     @abstractmethod
     def select_element_from_element_list(self, elements):
         """
+        Usually used to select which policies to transfer.
         Args: 
             elements: Archive to draw an Element (value) from. Must be of class Archive
         
