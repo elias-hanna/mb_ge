@@ -31,6 +31,8 @@ if __name__ == '__main__':
     parser.add_argument('--dump-path', type=str, default='default_dump/')
     parser.add_argument('--dump-rate', type=int, default=100)
 
+    parser.add_argument('--train-unique-trans', action='store_true')
+
     parser.add_argument('--variable-horizon', action='store_true')
     parser.add_argument('--epoch-mode', type=str, default='fixed_steps')
 
@@ -60,6 +62,7 @@ if __name__ == '__main__':
     go_method = ExecutePolicyGo
 
     epoch_mode = args.epoch_mode
+    train_unique_trans = args.train_unique_trans
     use_variable_horizon = args.variable_horizon
     dump_rate = args.dump_rate
     budget = args.budget
@@ -90,7 +93,7 @@ if __name__ == '__main__':
         'layer_size': 500,
         'batch_size': 512,
         'learning_rate': 1e-3,
-        'train_unique_trans': False,
+        'train_unique_trans': train_unique_trans,
     }
     params = \
     {

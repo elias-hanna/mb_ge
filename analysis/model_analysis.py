@@ -52,7 +52,7 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env,
     current_ends = []
     # init_elem = Element(policy_parameters=params[0], descriptor=descriptors[0])
     el_params = None
-    el_traj = None
+    el_traj = []
     if execute_policies:
         el_params = params[0]
         el_traj = [0.]*round(policy_horizon[0])
@@ -79,7 +79,7 @@ def reconstruct_elements(params, descriptors, prev_descriptors, gym_env,
         for next_elem_index in next_elems_indexes:
             ## Reconstruct the element
             el_params = None
-            el_traj = None
+            el_traj = []
             if execute_policies:
                 el_params = loc_params[next_elem_index]
                 el_traj = [0.]*round(loc_pi_h[next_elem_index])
@@ -211,7 +211,44 @@ if __name__ == '__main__':
 
     splitted_foldername = list(filter(None, folderpath.split('/')))
     run_name = splitted_foldername[-2] + '_' +splitted_foldername[-1]
-    
+ 
+    # g_params = \
+    # {
+    #     'controller_type': NeuralNetworkController,
+    #     'controller_params': controller_params,
+
+    #     'action_min': -1,
+    #     'action_max': 1,
+        
+    #     'budget': 1000000,
+    #     'exploration_horizon': 100,
+    #     'nb_eval_exploration': 10,
+    #     'nb_thread_exploration': 6,
+
+    #     'archive_type': 'cell',
+    #     'fixed_grid_min': -0.5,
+    #     'fixed_grid_max': 0.5,
+    #     'fixed_grid_div': 10,
+        
+    #     'policy_param_init_min': -5,
+    #     'policy_param_init_max': 5,
+
+    #     'model_update_rate': 10,
+    #     'dynamics_model_params': dynamics_model_params,
+
+    #     'epoch_mode': "model_update",
+    #     'steps_per_epoch': 1000,
+    #     'use_variable_model_horizon': False,
+    #     'min_horizon': 1,
+    #     'max_horizon': 25,
+    #     'horizon_starting_epoch': 20,
+    #     'horizon_ending_epoch': 100,
+        
+    #     'dump_rate': 200,
+    #     'nb_of_samples_per_state':10,
+    #     'dump_all_transitions': False,
+    # }
+
     controller_params = \
     {
         'controller_input_dim': 6,
@@ -228,6 +265,7 @@ if __name__ == '__main__':
         'layer_size': 500,
         'batch_size': 512,
         'learning_rate': 1e-3,
+        'train_unique_trans': False,
     }
     g_params = \
     {
@@ -238,32 +276,36 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': 1000000,
-        'exploration_horizon': 100,
+        'exploration_horizon': 10,
         'nb_eval_exploration': 10,
         'nb_thread_exploration': 6,
 
         'archive_type': 'cell',
+        'single_element_per_cell': True,
         'fixed_grid_min': -0.5,
         'fixed_grid_max': 0.5,
-        'fixed_grid_div': 10,
+        'fixed_grid_div': 30,
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
 
-        'model_update_rate': 10,
         'dynamics_model_params': dynamics_model_params,
-
-        'epoch_mode': "model_update",
-        'steps_per_epoch': 1000,
-        'use_variable_model_horizon': False,
-        'min_horizon': 1,
-        'max_horizon': 25,
-        'horizon_starting_epoch': 20,
-        'horizon_ending_epoch': 100,
         
-        'dump_rate': 200,
+        'epoch_mode': 'fixed_steps',
+        'model_update_rate': 10,
+        'steps_per_epoch': 5000, # unused if epoch_mode == model_update
+        'use_variable_model_horizon': False,
+        'min_horizon': 1, # unused if use_variable_horizon == False
+        'max_horizon': 25, # unused if use_variable_horizon == False
+        'horizon_starting_epoch': 20, # unused if use_variable_horizon == False
+        'horizon_ending_epoch': 100, # unused if use_variable_horizon == False
+
+        'dump_path': 'default_dump/',
+        'dump_rate': 200, # unused if dump_checkpoints used
+        'dump_checkpoints': [10000, 20000, 50000, 100000, 200000, 500000, 1000000],
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
+        'env_max_h': 300,
     }
 
     reachable_bins = getBinsReachable(g_params['fixed_grid_min'], g_params['fixed_grid_max'],

@@ -1,9 +1,14 @@
 # Data manipulation includes
 import numpy as np
 import matplotlib
-from matplotlib import pyplot as plt
+from matplotlib.pyplot import cm
+import matplotlib.pyplot as plt
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+
+# OS manipulation includes
+import sys
+import os
 
 # Local imports
 from count_bins import getBinsReachable
@@ -11,8 +16,16 @@ from count_bins import getBinsReachable
 # MB-GE includes
 from mb_ge.controller.nn_controller import NeuralNetworkController
 
-
 if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(f'usage: {sys.argv[0]} path_of_folder_with_res_repetitions')
+        exit()
+
+    folderpath = sys.argv[1]
+
+    splitted_foldername = list(filter(None, folderpath.split('/')))
+    run_name = splitted_foldername[-2] + '_' +splitted_foldername[-1]
+    
     controller_params = \
     {
         'controller_input_dim': 6,
@@ -75,29 +88,26 @@ if __name__ == '__main__':
     reachable_bins = getBinsReachable(params['fixed_grid_min'], params['fixed_grid_max'],
                                       params['fixed_grid_div'])
 
-    # label = [int(val) for val in max_values]
+    rep_dirs = next(os.walk(folderpath))[1]
 
-    label = [10000, 20000, 50000, 100000, 200000, 500000, 1000000]
+    number_of_reps = len(rep_dirs)
 
-    coverage_data = np.load('coverage_data.npz')
-    budget_spent = coverage_data['budget']
-    cells = coverage_data['cells']
-    import pdb; pdb.set_trace()
-    coverage = cells/reachable_bins
-    
-    ## Compute coverage and reward mean/error
-    # coverage_mean = np.nanmean(coverage_vals, axis = 0)
-    # reward_mean = np.nanmean(rewarding_pis_vals, axis = 0)
+    coverage_vals = []
+    budgets = []
+    for rep_dir in rep_dirs:
+        print(rep_dir)
+        rep_path = os.path.join(folderpath, rep_dir)
+        coverage_data = np.load(os.path.join(rep_path, 'coverage_data.npz'))
+        coverage_vals.append(coverage_data['cells']/reachable_bins)
+        budgets.append(coverage_data['budget'])
 
-    # coverage_error = np.nanstd(coverage_vals, axis = 0)
-    # reward_error = np.nanstd(rewarding_pis_vals, axis = 0)
-
+    color = cm.rainbow(np.linspace(0, 1, len(coverage_vals)))
+   
     plt.figure()
 
-    plt.plot(budget_spent, coverage, 'k-')
-    # plt.plot(label, coverage_mean, 'k-')
-    # plt.fill_between(label, coverage_mean-coverage_error, coverage_mean+coverage_error,
-                     # facecolor='green', alpha=0.5)
+    for cov, bud, c in zip(coverage_vals, budgets, color):
+        plt.plot(bud, cov, c=c)
+
     plt.title(f"Coverage depending on number of iterations")
     # plt.savefig(f"coverage_{run_name}.jpg")
 
