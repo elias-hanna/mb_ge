@@ -6,10 +6,12 @@ class ExecutePolicyGo(GoMethod):
         
     def go(self, gym_env, el):
         ## reconstruct needed-policy chaining (deterministic-case)
+        actions_chain = []
         policies_to_chain = []
         len_under_policy = []
         budget_used = 0
         transitions = []
+        actions_chain = el.actions + actions_chain
         policies_to_chain.insert(0, el.policy_parameters)
         len_under_policy.insert(0, len(el.trajectory))
         prev_el = el.previous_element
@@ -17,6 +19,7 @@ class ExecutePolicyGo(GoMethod):
         while prev_el != None:
             # if prev_el.policy_parameters != []:
             if prev_el.policy_parameters is not None:
+                actions_chain = el.actions + actions_chain        
                 policies_to_chain.insert(0, prev_el.policy_parameters)
                 len_under_policy.insert(0, len(prev_el.trajectory))
             prev_el = prev_el.previous_element
@@ -27,12 +30,15 @@ class ExecutePolicyGo(GoMethod):
         if el.policy_parameters is None:
             transitions.append((None, obs))
             return transitions, budget_used
+        action_cpt = 0
         for policy_params, h in zip(policies_to_chain, len_under_policy):
             self.controller.set_parameters(policy_params)
             for _ in range(h):
                 action = self.controller(obs)
+                # action = actions_chain[action_cpt]
                 transitions.append((action, obs))
                 obs, reward, done, info = gym_env.step(action)
                 budget_used += 1
+                action_cpt += 1
         transitions.append((None, obs))
         return transitions, budget_used

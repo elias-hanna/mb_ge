@@ -180,12 +180,12 @@ class DynamicsModel():
         S = []
         NS = []
         for el in elements:
-            # prev_state = el.prev_element.trajectory[-1]
+            prev_state = el.prev_element.trajectory[-1]
             # for a, s in zip(el.actions, el.trajectory):
-            #     ns = s - prev_state
-            #     A.append(copy.copy(a))
-            #     S.append(copy.copy(s))
-            #     NS.append(copy.copy(ns))
+                # ns = s - prev_state
+                # A.append(copy.copy(a))
+                # S.append(copy.copy(s))
+                # NS.append(copy.copy(ns))
             for i in range(len(el.trajectory) - 1):
                 A.append(copy.copy(el.actions[i]))
                 S.append(copy.copy(el.trajectory[i]))

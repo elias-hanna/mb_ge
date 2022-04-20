@@ -170,7 +170,7 @@ class GoExplore():
                                                        k=self._nb_nearest_neighbors)
                 el.novelty = sum(k_dists[0])/self._nb_nearest_neighbors
 
-    def _dump(self, itr, budget_used, sim_budget_used):
+    def _dump(self, itr, budget_used, sim_budget_used, plot_disagr=False, plot_novelty=False):
         self._dump_coverage.append(len(self.state_archive._archive.keys()))
         self._dump_budget.append(budget_used)
         if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
@@ -178,13 +178,15 @@ class GoExplore():
             path_to_file = os.path.join(self.dump_path, 'coverage_data.npz')
             np.savez(path_to_file, cells=self._dump_coverage, budget=self._dump_budget)
             self.state_archive.dump_archive(self.dump_path, budget_used,
-                                            self._dump_checkpoints[self.budget_dump_cpt])
+                                            self._dump_checkpoints[self.budget_dump_cpt],
+                                            plot_disagr=plot_disagr, plot_novelty=plot_novelty)
             self.budget_dump_cpt += 1
 
         if sim_budget_used >= self._dump_checkpoints[self.sim_budget_dump_cpt]:
             self.state_archive.dump_archive(self.dump_path, sim_budget_used,
                                             'sim_'+
-                                            str(self._dump_checkpoints[self.sim_budget_dump_cpt]))
+                                            str(self._dump_checkpoints[self.sim_budget_dump_cpt]),
+                                            plot_disagr=True, plot_novelty=True)
             self.sim_budget_dump_cpt += 1
         
     def _exploration_phase(self):
@@ -263,7 +265,7 @@ class GoExplore():
             # Update epoch, exploration horizon and model if relevant 
             to_print += self._update(itr, budget_used)
             # Dump data
-            self._dump(itr, budget_used, sim_budget_used)
+            self._dump(itr, budget_used, sim_budget_used, plot_novelty=True)
             # Print
             print(to_print)
 

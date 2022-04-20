@@ -5,6 +5,7 @@ if __name__ == '__main__':
     from mb_ge.selection.mean_disagreement_selection import MeanDisagreementSelection
     from mb_ge.selection.max_disagreement_selection import MaxDisagreementSelection
     from mb_ge.selection.state_disagreement_selection import StateDisagreementSelection
+    from mb_ge.selection.novelty_selection import NoveltySelection
     from mb_ge.selection.pareto_front_selection import ParetoFrontSelection
 
     from mb_ge.go.execute_policy_go import ExecutePolicyGo
@@ -51,6 +52,8 @@ if __name__ == '__main__':
         cell_selection_method = HeuristicSelection
     elif args.cell_selection == 'statedisagr':
         cell_selection_method = StateDisagreementSelection
+    elif args.cell_selection == 'novelty':
+        cell_selection_method = NoveltySelection
     elif args.cell_selection == 'paretofront':
         cell_selection_method = ParetoFrontSelection
 
@@ -62,6 +65,8 @@ if __name__ == '__main__':
         transfer_selection_method = MaxDisagreementSelection
     elif args.transfer_selection == 'statedisagr':
         transfer_selection_method = StateDisagreementSelection
+    elif args.transfer_selection == 'novelty':
+        transfer_selection_method = NoveltySelection
     elif args.transfer_selection == 'paretofront':
         transfer_selection_method = ParetoFrontSelection
 
@@ -115,15 +120,15 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': budget,
-        'exploration_horizon': 10,
-        'nb_eval_exploration': 10,
-        'nb_thread_exploration': 6,
+        'exploration_horizon': 10, # usually 10
+        'nb_eval_exploration': 20, # usually 10
+        'nb_thread_exploration': 6, # usually 6
 
         'archive_type': 'cell',
         'single_element_per_cell': True,
         'fixed_grid_min': -0.5,
         'fixed_grid_max': 0.5,
-        'fixed_grid_div': 50,
+        'fixed_grid_div': 100, # usually 30
         
         'policy_param_init_min': -5,
         'policy_param_init_max': 5,
@@ -141,7 +146,8 @@ if __name__ == '__main__':
 
         'dump_path': args.dump_path,
         'dump_rate': dump_rate, # unused if dump_checkpoints used
-        'dump_checkpoints': [10000, 20000, 50000, 100000, 200000, 500000, 1000000],
+        # 'dump_checkpoints': [10000, 20000, 50000, 100000, 200000, 500000, 1000000],
+        'dump_checkpoints': [1000, 2000, 5000, 10000, 20000, 50000, 100000],# 1000000],
         'nb_of_samples_per_state':10,
         'dump_all_transitions': False,
         'env_max_h': env.max_steps,

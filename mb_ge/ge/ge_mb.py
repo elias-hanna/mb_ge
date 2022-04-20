@@ -4,6 +4,10 @@ from mb_ge.ge.ge import GoExplore
 import copy
 import os
 
+
+#### TEMPORARY
+from mb_ge.selection.state_disagreement_selection import StateDisagreementSelection
+
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
                  transfer_selection_method=None, go_method=None, exploration_method=None,
@@ -16,6 +20,7 @@ class ModelBasedGoExplore(GoExplore):
                          state_archive=state_archive)
         self._cell_selection_method = cell_selection_method(params=params)
         self._transfer_selection_method = transfer_selection_method(params=params)
+        self.horrible_thing = StateDisagreementSelection(params=params)
 
     def _process_params(self, params):
         super()._process_params(params)
@@ -127,6 +132,11 @@ class ModelBasedGoExplore(GoExplore):
             #         except Exception as e:
             #             import pdb; pdb.set_trace()
             # Select a state to go to from states found in imagination
+
+            ##### NEED TO BE REMOVED HORRIBLE#####
+            all_elements = self.state_archive.get_all_elements()
+            _, _ = self.horrible_thing._batch_eval_all_elements(all_elements)
+            #####################################################
             sel_i_el = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go to the selected state on real system
             transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
@@ -137,7 +147,7 @@ class ModelBasedGoExplore(GoExplore):
 
             # Update novelty
             self._update_novelty([sel_i_el])
-
+            # print('REAL OBSERVED NOV: ', sel_i_el.novelty)
             # Update archive and other datasets
             self.state_archive.add(sel_i_el)
             ## OPTIONNAL JUST HERE TO GATHER DATA FOR FULL MODEL
@@ -157,7 +167,7 @@ class ModelBasedGoExplore(GoExplore):
             # Update epoch, exploration horizon and model if relevant
             to_print += self._update(itr, budget_used, transitions)
             # Dump data
-            self._dump(itr, budget_used, sim_budget_used)
+            self._dump(itr, budget_used, sim_budget_used, plot_novelty=True, plot_disagr=True)
             # Print
             print(to_print)
 

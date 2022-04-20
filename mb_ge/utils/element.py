@@ -1,5 +1,5 @@
 class Element():
-    def __init__(self, descriptor=None, trajectory=None, actions=None, reward=0.,
+    def __init__(self, descriptor=None, trajectory=None, actions=[], reward=0.,
                  disagreement=None, policy_parameters=None, previous_element=None, sim_state=None,
                  total_trajectory_len=0):
         self.descriptor = descriptor

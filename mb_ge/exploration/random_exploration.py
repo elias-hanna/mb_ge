@@ -106,7 +106,10 @@ class RandomExploration(ExplorationMethod):
         for _ in range(self.exploration_horizon):
             for i in range(len(X)):
                 A[i,:] = controller_list[i](S[i,:])
-
+                # A[i,:] = np.random.uniform(low=self._action_min,
+                                           # high=self._action_max,
+                                           # size=3)
+                
             batch_pred_delta_ns, batch_disagreement = model.forward_multiple(A, S, mean=True,
                                                                              disagr=True)
 

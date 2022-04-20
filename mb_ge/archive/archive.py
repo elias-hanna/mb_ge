@@ -45,10 +45,10 @@ class Archive():
         """
         raise NotImplementedError
 
-    def dump_archive(self, dump_path, budget_used, itr):
+    def dump_archive(self, dump_path, budget_used, itr, plot_disagr=False, plot_novelty=False):
         path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
         os.makedirs(path_to_dir_to_create, exist_ok=True)
-        self.visualize(budget_used, itr=itr)
+        self.visualize(budget_used, itr=itr, plot_disagr=plot_disagr, plot_novelty=plot_novelty)
         total_num_of_els = 0
         all_max_len_desc = []
         all_max_len_params = []
@@ -101,37 +101,54 @@ class Archive():
                     # np.savez_compressed(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
                             # self.state_archive._archive[key]._elements)
 
-    def visualize(self, curr_budget, show=False, mode='3d', itr=0):
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        ## Create the grid
-        x_min = y_min = z_min = self._grid_min
-        x_max = y_max = z_max = self._grid_max
-
-        fig = plt.figure()  
-        ax = fig.add_subplot(111, projection='3d')  
+    def _prepare_plot(self, plt, fig, ax):
+        ## Set plot labels
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+
+        ## Set plot limits
+        x_min = y_min = z_min = self._grid_min
+        x_max = y_max = z_max = self._grid_max
+        
         ax.set_xlim(x_min,x_max)
         ax.set_ylim(y_min,y_max)
         ax.set_zlim(z_min,z_max)
 
+        ## Set axes ticks (for the grid)
         ticks = [self._grid_min + i*(self._grid_max - self._grid_min)/self._grid_div
                  for i in range(self._grid_div)]
+        
         ax.set_xticks(ticks)
         ax.set_yticks(ticks)
         ax.set_zticks(ticks)
 
+        ## Add grid to plot 
         plt.grid(True,which="both", linestyle='--')
+
+        ## Set ticks label to show label for only 10 ticks
+        mod_val = len(ticks)//10 if len(ticks) > 50 else len(ticks)//5
+        ticks_labels = [round(ticks[i],2) if (i)%mod_val==0 else ' ' for i in range(len(ticks))]
+        ticks_labels[-1] = self._grid_max
+        ax.set_xticklabels(ticks_labels)
+        ax.set_yticklabels(ticks_labels)
+        ax.set_zticklabels(ticks_labels)
+
+        ## Invert zaxis for the plot to be like reality
+        plt.gca().invert_zaxis()
         
-        plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
+    def visualize(self, curr_budget, itr=0, show=False, plot_disagr=False, plot_novelty=False):
+        import matplotlib
+        import matplotlib.pyplot as plt
+        import matplotlib.cm as cm
+
+        import numpy as np
         
         x = []
         y = []
         z = []
         disagrs = []
+        novelties = []
         ## Add the BD data from archive:
         for key in self._archive.keys():
             elements = self._archive[key].get_elements()
@@ -140,13 +157,109 @@ class Archive():
                 y.append(el.descriptor[1])
                 z.append(el.descriptor[2])
                 disagrs.append(el.mean_disagr)
-                
-        if mode == '3d':
-            ax.scatter(x, y, z)
-        elif mode == '3d-cmap':
-            ax.scatter(x, y, z, c=disagrs)
-        plt.gca().invert_zaxis()
+                novelties.append(el.novelty)
+
+        ## Create fig and ax
+        fig = plt.figure(figsize=(8, 8), dpi=160)  
+        ax = fig.add_subplot(111, projection='3d')  
+
+        self._prepare_plot(plt, fig, ax)
+
+        ## Scatter plot 
+        ax.scatter(x, y, z)
+
+        # ## Set plot labels
+        # ax.set_xlabel('X')
+        # ax.set_ylabel('Y')
+        # ax.set_zlabel('Z')
+
+        # ## Set plot limits
+        # x_min = y_min = z_min = self._grid_min
+        # x_max = y_max = z_max = self._grid_max
+        
+        # ax.set_xlim(x_min,x_max)
+        # ax.set_ylim(y_min,y_max)
+        # ax.set_zlim(z_min,z_max)
+
+        # ## Set axes ticks (for the grid)
+        # ticks = [self._grid_min + i*(self._grid_max - self._grid_min)/self._grid_div
+        #          for i in range(self._grid_div)]
+        
+        # ax.set_xticks(ticks)
+        # ax.set_yticks(ticks)
+        # ax.set_zticks(ticks)
+
+        # ## Add grid to plot 
+        # plt.grid(True,which="both", linestyle='--')
+
+        # ## Set ticks label to show label for only 10 ticks
+        # mod_val = len(ticks)//10 if len(ticks) > 50 else len(ticks)//5
+        # ticks_labels = [round(ticks[i],2) if (i)%mod_val==0 else ' ' for i in range(len(ticks))]
+        # ticks_labels[-1] = self._grid_max
+        # ax.set_xticklabels(ticks_labels)
+        # ax.set_yticklabels(ticks_labels)
+        # ax.set_zticklabels(ticks_labels)
+
+        # ## Invert zaxis for the plot to be like reality
+        # plt.gca().invert_zaxis()
+
+        ## Set plot title
+        plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
+
+        ## Save fig
         plt.savefig(f"{self.dump_path}/results_{itr}/state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+        
+        if plot_disagr:
+            fig = plt.figure(figsize=(8, 8), dpi=160)  
+            ax = fig.add_subplot(111, projection='3d')  
+
+            self._prepare_plot(plt, fig, ax)
+
+            min_disagr = np.min(disagrs)
+            max_disagr = np.max(disagrs)
+            norm_disagr =  (disagrs - np.min(disagrs))/(np.max(disagrs)-np.min(disagrs))
+
+            cm = plt.cm.get_cmap()
+            sc = ax.scatter(x, y, z, c=norm_disagr, cmap=cm)
+            clb = plt.colorbar(sc)
+            ## Round for cleaner plot
+            min_disagr = round(min_disagr,4)
+            max_disagr = round(max_disagr,4)
+            clb.set_label('Normalized model ensemble disagreement for each reached state')
+            clb.ax.set_title(f'min disagr={min_disagr} and max disagr={max_disagr}')
+
+            ## Set plot title
+            plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
+
+            ## Save fig
+            plt.savefig(f"{self.dump_path}/results_{itr}/disagr_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+
+        if plot_novelty:
+            fig = plt.figure(figsize=(8, 8), dpi=160)  
+            ax = fig.add_subplot(111, projection='3d')  
+
+            self._prepare_plot(plt, fig, ax)
+
+            min_nov = np.min(novelties)
+            max_nov = np.max(novelties)
+            norm_nov =  (novelties - np.min(novelties))/(np.max(novelties)-np.min(novelties))
+
+            cm = plt.cm.get_cmap()
+            sc = ax.scatter(x, y, z, c=norm_nov, cmap=cm)
+            clb = plt.colorbar(sc)
+            ## Round for cleaner plot
+            min_nov = round(min_nov,4)
+            max_nov = round(max_nov,4)
+
+            clb.set_label('Normalized novelty for each reached state')
+            clb.ax.set_title(f'min nov={min_nov} and max nov={max_nov}')
+
+            ## Set plot title
+            plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
+
+            ## Save fig
+            plt.savefig(f"{self.dump_path}/results_{itr}/novelty_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+
         if show:
             plt.show()
         plt.close()

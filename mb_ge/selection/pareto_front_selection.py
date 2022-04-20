@@ -59,7 +59,10 @@ class ParetoFrontSelection(StateDisagreementSelection):
             # plt.ylabel('Novelty')
             # plt.show()
             sel_idx = non_dominated_novelty.index(kneedle.knee_y) # y-axis is nov
-            
+            # print('novelty and disagr of ind choosed: ', kneedle.knee_y, ' ', kneedle.knee)
+            # print('max nov and max disagr in pop: ', max(non_dominated_novelty), ' ',
+                  # max(non_dominated_disagr))
+            # print('num of inds on pareto front: ', len(non_dominated_novelty))
             return all_elements_ordered[non_dominated_idx[sel_idx]]
         else:
             return all_elements_ordered[non_dominated_idx[0]]
