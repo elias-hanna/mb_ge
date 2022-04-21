@@ -76,38 +76,10 @@ class StateDisagreementSelection(SelectionMethod):
                 return selected_element
         return None
         
-    def select_element_from_element_list(self, elements):
+    def select_element_from_element_list(self, elements, k=1):
         elements_ordered, _ = self._batch_eval_all_elements(elements)
-        for selected_element in elements_ordered:
-            if self._horizon_check(selected_element):
-                return selected_element
-        return None
+        return self._get_horizon_checked_element_list(elements_ordered)[:k]
         
-        # most_disagreed_element = None
-        # max_disagr = None
-        # # if len(elements) == 1:
-        #     # return [elements[0]]
-        # for element in elements:
-        #     last_obs = element.trajectory[-1]
-        #     mean_disagreements = []
-        #     for _ in range(self.nb_of_samples_per_state):
-        #         action = np.random.uniform(low=-1, high=1, size=self._action_dim)
-        #         _, disagreement = self._model.forward(action, last_obs, mean=True, disagr=True)
-        #         mean_disagreements.append(disagreement)
-
-        #     if mean_disagreements == [] or mean_disagreements[0] == []:
-        #         continue
-        #     mean_disagr = np.mean([np.mean(disagr.detach().numpy())
-        #                            for disagr in mean_disagreements])
-        #     if most_disagreed_element is not None:
-        #         if mean_disagr > max_disagr:
-        #             most_disagreed_element = element
-        #             max_disagr = mean_disagr
-        #     else:
-        #         most_disagreed_element = element
-        #         max_disagr = mean_disagr
-        # return most_disagreed_element
-
     def get_ordered_element_list(self, elements):
         disagrs = []
         els = []
@@ -127,8 +99,5 @@ class StateDisagreementSelection(SelectionMethod):
             disagrs.append(mean_disagr)
             els.append(element)
 
-        try:
-            elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
-        except Exception as e:
-            import pdb; pdb.set_trace()
+        elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
         return elements_ordered

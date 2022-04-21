@@ -126,8 +126,8 @@ if __name__ == '__main__':
 
         'archive_type': 'cell',
         'single_element_per_cell': True,
-        'fixed_grid_min': -0.5,
-        'fixed_grid_max': 0.5,
+        'fixed_grid_min': -0.4,
+        'fixed_grid_max': 0.4,
         'fixed_grid_div': 100, # usually 30
         
         'policy_param_init_min': -5,
@@ -139,16 +139,16 @@ if __name__ == '__main__':
         'model_update_rate': 10,
         'steps_per_epoch': 5000, # unused if epoch_mode == model_update
         'use_variable_model_horizon': use_variable_horizon,
-        'min_horizon': 1, # unused if use_variable_horizon == False
-        'max_horizon': 25, # unused if use_variable_horizon == False
-        'horizon_starting_epoch': 20, # unused if use_variable_horizon == False
-        'horizon_ending_epoch': 100, # unused if use_variable_horizon == False
+        'min_horizon': 50, # 1 in mbpo # unused if use_variable_horizon == False
+        'max_horizon': 100, # 25 in mbpo unused if use_variable_horizon == False
+        'horizon_starting_epoch': 1, # 20 in mbpo # unused if use_variable_horizon == False
+        'horizon_ending_epoch': 10, # 100 in mbpo # unused if use_variable_horizon == False
 
         'dump_path': args.dump_path,
         'dump_rate': dump_rate, # unused if dump_checkpoints used
         # 'dump_checkpoints': [10000, 20000, 50000, 100000, 200000, 500000, 1000000],
         'dump_checkpoints': [1000, 2000, 5000, 10000, 20000, 50000, 100000],# 1000000],
-        'nb_of_samples_per_state':10,
+        'nb_of_samples_per_state': 10,
         'dump_all_transitions': False,
         'env_max_h': env.max_steps,
     }

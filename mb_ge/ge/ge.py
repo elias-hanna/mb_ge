@@ -141,7 +141,7 @@ class GoExplore():
             b = self._horizon_ending_epoch
             
             if self.e >= a: # normal case
-                self.h_exploration = int(min(max(x + ((e - a)/(b - a))*(y - x), x), y))
+                self.h_exploration = int(min(max(x + ((self.e - a)/(b - a))*(y - x), x), y))
             elif self.e < a:
                 self.h_exploration = x
             elif self.e > b:
@@ -186,7 +186,7 @@ class GoExplore():
             self.state_archive.dump_archive(self.dump_path, sim_budget_used,
                                             'sim_'+
                                             str(self._dump_checkpoints[self.sim_budget_dump_cpt]),
-                                            plot_disagr=True, plot_novelty=True)
+                                            plot_disagr=False, plot_novelty=True)
             self.sim_budget_dump_cpt += 1
         
     def _exploration_phase(self):
@@ -208,22 +208,6 @@ class GoExplore():
         while budget_used < self.budget and not done:
             b_used = 0
             sim_b_used = 0
-            ### OLD WAY closer to GE ###
-            # ## Reset environment
-            # obs = self.gym_env.reset()
-            # ## Select a state to return from the archive
-            # el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
-            # ## Go back to the selected state
-            # ## Restore simulator state
-            # transitions, b_used = self._go_method.go(self.gym_env, el)
-            # ## Explore from the selected state
-            # elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)
-            # b_used += b_used_expl
-
-            ## Update archive and other datasets
-            # for elem in elements:
-                # self.state_archive.add(elem)
-                
             ## Reset environment
             obs = self.gym_env.reset()
             ## Select a state to return to from the archive
@@ -239,8 +223,8 @@ class GoExplore():
             # Select a state to add to archive from the exploration elements
             nb_of_el_to_add = self.nb_eval_exploration
             sel_els = self._cell_selection_method.select_element_from_element_list(elements,
-                                                                                   nb_of_el_to_add)
-
+                                                                                   k=nb_of_el_to_add)
+            ## No need to "go" to selected states since its done on real system directly
             
             ## Update archive and other datasets
             for sel_el in sel_els:

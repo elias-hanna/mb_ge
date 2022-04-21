@@ -19,5 +19,6 @@ class HeuristicSelection(SelectionMethod):
                     return selected_element
         return None
     
-    def select_element_from_element_list(self, elements, num_of_els):
-        return random.choices(elements, k=num_of_els)
+    def select_element_from_element_list(self, elements, k=1):
+        elements_ordered = random.choices(elements, k=k)
+        return self._get_horizon_checked_element_list(elements_ordered)[:k]

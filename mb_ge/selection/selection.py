@@ -17,6 +17,13 @@ class SelectionMethod():
             traj_len += len(prev_el.trajectory)
             prev_el = prev_el.previous_element
         return (traj_len < self._env_max_h)
+
+    def _get_horizon_checked_element_list(self, elements):
+        checked_elements = []
+        for element in elements:
+            if self._horizon_check(element):
+                checked_elements.append(element)
+        return checked_elements
     
     @abstractmethod
     def select_element_from_cell_archive(self, archive):
@@ -31,7 +38,7 @@ class SelectionMethod():
         raise NotImplementedError
 
     @abstractmethod
-    def select_element_from_element_list(self, elements):
+    def select_element_from_element_list(self, elements, k=1):
         """
         Usually used to select which policies to transfer.
         Args: 

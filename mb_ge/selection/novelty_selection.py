@@ -13,13 +13,10 @@ class NoveltySelection(SelectionMethod):
                 return selected_element
         return None
         
-    def select_element_from_element_list(self, elements):
+    def select_element_from_element_list(self, elements, k=1):
         elements_ordered = self.get_ordered_element_list(elements)
-        for selected_element in elements_ordered:
-            if self._horizon_check(selected_element):
-                return selected_element
-        return None
-        
+        return self._get_horizon_checked_element_list(elements_ordered)[:k]
+    
     def get_ordered_element_list(self, elements):
         novelties = []
         els = []
@@ -31,4 +28,5 @@ class NoveltySelection(SelectionMethod):
             return random.choices(elements, k=len(elements))
 
         elements_ordered = [el for _, el in sorted(zip(novelties, els), reverse=True)]
+        
         return elements_ordered
