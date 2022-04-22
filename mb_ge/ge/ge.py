@@ -211,7 +211,8 @@ class GoExplore():
             ## Reset environment
             obs = self.gym_env.reset()
             ## Select a state to return to from the archive
-            el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
+            el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive,
+                                                                              exploration_horizon=self.h_exploration)
             transitions, sel_el_go_b = self._go_method.go(self.gym_env, el)
             ## Explore from the selected state
             elements, b_used_expl = self._exploration_method(self.gym_env, el, self.h_exploration)

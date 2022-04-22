@@ -156,7 +156,7 @@ class Archive():
                 x.append(el.descriptor[0])
                 y.append(el.descriptor[1])
                 z.append(el.descriptor[2])
-                disagrs.append(el.mean_disagr)
+                disagrs.append(el.end_state_disagr)
                 novelties.append(el.novelty)
 
         ## Create fig and ax
@@ -217,22 +217,28 @@ class Archive():
 
             min_disagr = np.min(disagrs)
             max_disagr = np.max(disagrs)
-            norm_disagr =  (disagrs - np.min(disagrs))/(np.max(disagrs)-np.min(disagrs))
-
-            cm = plt.cm.get_cmap()
-            sc = ax.scatter(x, y, z, c=norm_disagr, cmap=cm)
-            clb = plt.colorbar(sc)
-            ## Round for cleaner plot
-            min_disagr = round(min_disagr,4)
-            max_disagr = round(max_disagr,4)
-            clb.set_label('Normalized model ensemble disagreement for each reached state')
-            clb.ax.set_title(f'min disagr={min_disagr} and max disagr={max_disagr}')
-
-            ## Set plot title
-            plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
-
-            ## Save fig
-            plt.savefig(f"{self.dump_path}/results_{itr}/disagr_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+            ## Handle case where disagr can't be computed
+            can_plot = True
+            if (max_disagr - min_disagr) == 0:
+                can_plot = False
+                print("WARNING: Can't plot archive with disagreement")
+            if can_plot:
+                norm_disagr =  (disagrs - np.min(disagrs))/(np.max(disagrs)-np.min(disagrs))
+                
+                cm = plt.cm.get_cmap()
+                sc = ax.scatter(x, y, z, c=norm_disagr, cmap=cm)
+                clb = plt.colorbar(sc)
+                ## Round for cleaner plot
+                min_disagr = round(min_disagr,4)
+                max_disagr = round(max_disagr,4)
+                clb.set_label('Normalized model ensemble disagreement for each reached state')
+                clb.ax.set_title(f'min disagr={min_disagr} and max disagr={max_disagr}')
+                
+                ## Set plot title
+                plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
+                
+                ## Save fig
+                plt.savefig(f"{self.dump_path}/results_{itr}/disagr_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
 
         if plot_novelty:
             fig = plt.figure(figsize=(8, 8), dpi=160)  
@@ -242,23 +248,29 @@ class Archive():
 
             min_nov = np.min(novelties)
             max_nov = np.max(novelties)
-            norm_nov =  (novelties - np.min(novelties))/(np.max(novelties)-np.min(novelties))
-
-            cm = plt.cm.get_cmap()
-            sc = ax.scatter(x, y, z, c=norm_nov, cmap=cm)
-            clb = plt.colorbar(sc)
-            ## Round for cleaner plot
-            min_nov = round(min_nov,4)
-            max_nov = round(max_nov,4)
-
-            clb.set_label('Normalized novelty for each reached state')
-            clb.ax.set_title(f'min nov={min_nov} and max nov={max_nov}')
-
-            ## Set plot title
-            plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
-
-            ## Save fig
-            plt.savefig(f"{self.dump_path}/results_{itr}/novelty_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
+            ## Handle case where novelty can't be computed
+            can_plot = True
+            if (max_nov - min_nov) == 0:
+                can_plot = False
+                print("WARNING: Can't plot archive with novelty")
+            if can_plot:
+                norm_nov =  (novelties - np.min(novelties))/(np.max(novelties)-np.min(novelties))
+                
+                cm = plt.cm.get_cmap()
+                sc = ax.scatter(x, y, z, c=norm_nov, cmap=cm)
+                clb = plt.colorbar(sc)
+                ## Round for cleaner plot
+                min_nov = round(min_nov,4)
+                max_nov = round(max_nov,4)
+                
+                clb.set_label('Normalized novelty for each reached state')
+                clb.ax.set_title(f'min nov={min_nov} and max nov={max_nov}')
+                
+                ## Set plot title
+                plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
+                
+                ## Save fig
+                plt.savefig(f"{self.dump_path}/results_{itr}/novelty_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
 
         if show:
             plt.show()

@@ -9,6 +9,7 @@ class FixedGridArchive(Archive):
     def __init__(self, params=None):
         super().__init__(params)
         self._process_params(params)
+        self.grid_centers = []
         
     def _process_params(self, params):
         super()._process_params(params)

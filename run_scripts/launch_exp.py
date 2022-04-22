@@ -120,7 +120,7 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': budget,
-        'exploration_horizon': 10, # usually 10
+        'exploration_horizon': 50, # usually 10
         'nb_eval_exploration': 20, # usually 10
         'nb_thread_exploration': 6, # usually 6
 
@@ -137,10 +137,10 @@ if __name__ == '__main__':
         
         'epoch_mode': epoch_mode,
         'model_update_rate': 10,
-        'steps_per_epoch': 5000, # unused if epoch_mode == model_update
+        'steps_per_epoch': 300, # unused if epoch_mode == model_update
         'use_variable_model_horizon': use_variable_horizon,
-        'min_horizon': 50, # 1 in mbpo # unused if use_variable_horizon == False
-        'max_horizon': 100, # 25 in mbpo unused if use_variable_horizon == False
+        'min_horizon': 1, # 1 in mbpo # unused if use_variable_horizon == False
+        'max_horizon': 25, # 25 in mbpo unused if use_variable_horizon == False
         'horizon_starting_epoch': 1, # 20 in mbpo # unused if use_variable_horizon == False
         'horizon_ending_epoch': 10, # 100 in mbpo # unused if use_variable_horizon == False
 

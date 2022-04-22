@@ -20,7 +20,9 @@ class ModelBasedGoExplore(GoExplore):
                          state_archive=state_archive)
         self._cell_selection_method = cell_selection_method(params=params)
         self._transfer_selection_method = transfer_selection_method(params=params)
-        self.horrible_thing = StateDisagreementSelection(params=params)
+        self._actions_sampled = np.random.uniform(low=-1, high=1,
+                                                  size=(self.nb_of_samples_per_state, self._action_dim))
+        # self.horrible_thing = StateDisagreementSelection(params=params)
 
     def _process_params(self, params):
         super()._process_params(params)
@@ -28,6 +30,24 @@ class ModelBasedGoExplore(GoExplore):
             self.model_update_rate = params['model_update_rate']
         else:
             self.model_update_rate = 10
+        if 'nb_of_samples_per_state' in params:
+            self.nb_of_samples_per_state = params['nb_of_samples_per_state']
+        else:
+            raise Exception('StateDisagreementSelection _process_params error: nb_of_samples_per_state not in params')
+        if 'action_min' in params:
+            self._action_min = params['action_min']
+        else:
+            print('Warning: using default action min value (-1)')
+            self._action_min = -1
+        if 'action_max' in params:
+            self._action_max = params['action_max']
+        else:
+            print('Warning: using default action max value (1)')
+            self._action_max = 1
+        if 'action_dim' in params['dynamics_model_params']:
+            self._action_dim = params['dynamics_model_params']['action_dim']
+        else:
+            raise Exception('StateDisagreementSelection _process_params error: action_dim not in params')
 
     def _correct_el(self, el, transitions):
         trajectory = []
@@ -46,30 +66,47 @@ class ModelBasedGoExplore(GoExplore):
         # Train the dynamics model
         if self.e - prev_e != 0:
             self._dynamics_model.train()
-
+            self._actions_sampled = np.random.uniform(low=-1, high=1,
+                                    size=(self.nb_of_samples_per_state, self._action_dim))
+            all_elements = self.state_archive.get_all_elements()
+            self._update_disagreement(all_elements, 'state')
+            
         return to_print
 
-    def _update_disagreement(self, elements):
-        gen_bd_list = []
-        for new_el in new_elements:
-            gen_bd_list.append(new_el.descriptor)
-            # self._archive_bd_list.append(new_el.descriptor)
-        archive_kdt = KDTree(self._archive_bd_list + gen_bd_list, leaf_size=30, metric='euclidean')
+    def _update_state_disagr(self, elements):
+        A = np.tile(self._actions_sampled, (len(elements), 1))
 
-        if not no_add:
-            self._archive_bd_list += gen_bd_list
+        all_s = []
+        # Get all states to estimate uncertainty for
+        for element in elements:
+            all_s.append(element.trajectory[-1])
+        S = np.repeat(all_s, self.nb_of_samples_per_state, axis=0)
+        # Batch prediction
+        batch_pred_delta_ns, batch_disagreement = self._dynamics_model.forward_multiple(A, S,
+                                                                                        mean=True,
+                                                                                        disagr=True)
+        end_state_disagrs = []
+        for i in range(len(elements)):
+            el_disagrs = batch_disagreement[i*self.nb_of_samples_per_state:
+                                            i*self.nb_of_samples_per_state+
+                                            self.nb_of_samples_per_state]
             
-        all_elements = self.state_archive.get_all_elements()
+            end_state_disagrs.append(np.mean([np.mean(disagr.detach().numpy()) for disagr in el_disagrs]))
+            elements[i].end_state_disagr = end_state_disagrs[-1]
 
-        all_elements += new_elements
-
-        if len(self._archive_bd_list) > self._nb_nearest_neighbors:
-            for el in all_elements:
-                ## Get k-nearest neighbours to this ind
-                k_dists, k_indexes = archive_kdt.query([el.descriptor],
-                                                       k=self._nb_nearest_neighbors)
-                el.novelty = sum(k_dists[0])/self._nb_nearest_neighbors
-                
+    def _update_trajectory_disagr(self, elements):
+        all_s = []
+        # Get all states to estimate uncertainty for
+        for element in elements:
+            element.trajectory_disagr = np.mean([np.mean(disagr.detach().numpy())
+                                                 for disagr in element.disagreement])
+        
+    def _update_disagreement(self, elements, mode):
+        if mode == 'state':
+            self._update_state_disagr(elements)
+        if mode == 'trajectory':
+            self._update_trajectory_disagr(elements)
+            
     def _exploration_phase(self):
         # reset gym environment
         obs = self.gym_env.reset()
@@ -86,24 +123,28 @@ class ModelBasedGoExplore(GoExplore):
 
         self.budget_dump_cpt = 0
         self.sim_budget_dump_cpt = 0
-
+        flag = False
         while budget_used < self.budget and not done:
             b_used = 0
             sim_b_used = 0
             ## Reset environment
             obs = self.gym_env.reset()
             # Select a state to return from the archive
-            el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive)
+            el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive,
+                                                                              exploration_horizon=self.h_exploration)
+            print(el)
+            print(el.descriptor)
             # Go to and Explore in imagination from the selected state
             i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
                                                             self.h_exploration, eval_on_model=True)
 
             # Update novelty
             self._update_novelty(i_elements, no_add=True)
+
+            # Compute disagreement for imagined exploration elements
+            # Compute trajectory disagreement for transfer selection
+            self._update_disagreement(i_elements, 'trajectory')
             
-            ##### NEED TO BE REMOVED HORRIBLE#####
-            all_elements = self.state_archive.get_all_elements()
-            _, _ = self.horrible_thing._batch_eval_all_elements(all_elements)
             #####################################################
             sel_i_els = self._transfer_selection_method.select_element_from_element_list(i_elements)
             # Go to the selected state(s) on real system
@@ -121,7 +162,11 @@ class ModelBasedGoExplore(GoExplore):
 
             # Update novelty
             self._update_novelty(sel_i_els)
-            # print('REAL OBSERVED NOV: ', sel_i_el.novelty)
+
+            # Compute disagreement for transferred elements
+            # Compute state disagreement for next cell selection
+            self._update_disagreement(sel_i_els, 'state')  
+
             # Update archive and other datasets
             for sel_i_el in sel_i_els:
                 self.state_archive.add(sel_i_el)

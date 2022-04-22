@@ -29,75 +29,31 @@ class StateDisagreementSelection(SelectionMethod):
             self._action_dim = params['dynamics_model_params']['action_dim']
         else:
             raise Exception('StateDisagreementSelection _process_params error: action_dim not in params')
-
-    def _batch_eval_all_elements(self, elements):
-        actions = np.random.uniform(low=-1, high=1,
-                                    size=(self.nb_of_samples_per_state, self._action_dim))
-
-        A = np.tile(actions, (len(elements), 1))
-
-        all_s = []
-        # Get all states to estimate uncertainty for
-        for element in elements:
-            all_s.append(element.trajectory[-1])
-        S = np.repeat(all_s, self.nb_of_samples_per_state, axis=0)
-        # Batch prediction
-        batch_pred_delta_ns, batch_disagreement = self._model.forward_multiple(A, S, mean=True,
-                                                                               disagr=True)
-        mean_disagrs = []
-        for i in range(len(elements)):
-            el_disagrs = batch_disagreement[i*self.nb_of_samples_per_state:
-                                            i*self.nb_of_samples_per_state+
-                                            self.nb_of_samples_per_state]
-            
-            mean_disagrs.append(np.mean([np.mean(disagr.detach().numpy()) for disagr in el_disagrs]))
-            elements[i].mean_disagr = mean_disagrs[-1]
-        try:
-            elements_ordered = [el for _, el in sorted(zip(mean_disagrs, elements), reverse=True)]
-            mean_disagrs = sorted(mean_disagrs, reverse=True)
-        except Exception as e:
-            import pdb; pdb.set_trace()
-        return elements_ordered, mean_disagrs
                 
-    def select_element_from_cell_archive(self, archive):
-        # most_disagreed_elements = []
-        # for cell in archive._archive.values():
-        #     most_disagreed_elements.append(self.select_element_from_element_list(cell._elements))
-        # return self.select_element_from_element_list(most_disagreed_elements)
-    
-        # all_elements = []
-        # for cell in archive._archive.values():
-            # all_elements += cell._elements
+    def select_element_from_cell_archive(self, archive, exploration_horizon=0, mode='state'):
         all_elements = archive.get_all_elements()
-        all_elements_ordered, _ = self._batch_eval_all_elements(all_elements)
-        # all_elements_ordered = self.get_ordered_element_list(all_elements)
+        # all_elements_ordered, _ = self._batch_eval_all_elements(all_elements)
+        all_elements_ordered = self.get_ordered_element_list(all_elements, mode=mode)
         for selected_element in all_elements_ordered:
-            if self._horizon_check(selected_element):
+            if self._horizon_check(selected_element, exploration_horizon=exploration_horizon):
                 return selected_element
         return None
         
-    def select_element_from_element_list(self, elements, k=1):
-        elements_ordered, _ = self._batch_eval_all_elements(elements)
+    def select_element_from_element_list(self, elements, k=1, mode='trajectory'):
+        elements_ordered = self.get_ordered_element_list(elements, mode=mode)
+        # elements_ordered, _ = self._batch_eval_all_elements(elements)
         return self._get_horizon_checked_element_list(elements_ordered)[:k]
-        
-    def get_ordered_element_list(self, elements):
+
+    def get_ordered_element_list(self, elements, mode='state'):
         disagrs = []
         els = []
-        # if len(elements) == 1:
-            # return elements[0]
         for element in elements:
-            last_obs = element.trajectory[-1]
-            mean_disagreements = []
-            for _ in range(self.nb_of_samples_per_state):
-                action = np.random.uniform(low=-1, high=1, size=self._action_dim)
-                _, disagreement = self._model.forward(action, last_obs, mean=True, disagr=True)
-                mean_disagreements.append(disagreement)
-            if mean_disagreements == [] or mean_disagreements[0] == []:
-                continue
-            mean_disagr = np.mean([np.mean(disagr.detach().numpy())
-                                   for disagr in mean_disagreements])
-            disagrs.append(mean_disagr)
+            if mode=='state':
+                disagrs.append(element.end_state_disagr)
+            if mode=='trajectory':
+                disagrs.append(element.trajectory_disagr)
             els.append(element)
 
         elements_ordered = [el for _, el in sorted(zip(disagrs, els), reverse=True)]
+        
         return elements_ordered

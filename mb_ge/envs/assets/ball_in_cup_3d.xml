@@ -47,7 +47,7 @@
       <geom name="cup_part_19" fromto=".0354 -.0354 0 .0354 -.0354 -.075" />
 
       <site name="cup" pos="0 0 -.108" size=".005"/>
-      <site name="target" type="box" pos="0 0 -.05" size=".05 .006 .05" group="4"/>
+      <site name="target" type="box" pos="0 0 -.05" size=".05 .05 .05" group="4"/>
     </body>
 
     <body name="ball" pos="0 0 .2">

@@ -5,11 +5,11 @@ import numpy as np
 from mb_ge.selection.selection import SelectionMethod
 
 class NoveltySelection(SelectionMethod):                
-    def select_element_from_cell_archive(self, archive):
+    def select_element_from_cell_archive(self, archive, exploration_horizon=0):
         all_elements = archive.get_all_elements()
         all_elements_ordered = self.get_ordered_element_list(all_elements)
         for selected_element in all_elements_ordered:
-            if self._horizon_check(selected_element):
+            if self._horizon_check(selected_element, exploration_horizon=exploration_horizon):
                 return selected_element
         return None
         

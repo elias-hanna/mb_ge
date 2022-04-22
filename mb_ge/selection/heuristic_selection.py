@@ -5,7 +5,7 @@ import math
 from mb_ge.selection.selection import SelectionMethod
 
 class HeuristicSelection(SelectionMethod):
-    def select_element_from_cell_archive(self, archive):
+    def select_element_from_cell_archive(self, archive, exploration_horizon=0):
         all_cells = archive._archive.values()
         weights = [1/(math.sqrt(0.5*cell.visit_count + 1)) for cell in all_cells]
         selected_cell_list = random.choices([cell for cell in all_cells],
@@ -15,7 +15,7 @@ class HeuristicSelection(SelectionMethod):
             selected_element_list = self.select_element_from_element_list(el_list,
                                                                           len(el_list))
             for selected_element in selected_element_list:
-                if self._horizon_check(selected_element):
+                if self._horizon_check(selected_element, exploration_horizon=exploration_horizon):
                     return selected_element
         return None
     

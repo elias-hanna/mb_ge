@@ -4,7 +4,7 @@ import random
 from mb_ge.selection.selection import SelectionMethod
 
 class RandomSelection(SelectionMethod):
-    def select_element_from_cell_archive(self, archive):
+    def select_element_from_cell_archive(self, archive, exploration_horizon=0):
         # selected_cell = random.choice(list(archive._archive.values()))
         # return self.select_element_from_element_list(selected_cell._elements)
         cell_list = list(archive._archive.values())
@@ -14,7 +14,7 @@ class RandomSelection(SelectionMethod):
             selected_element_list = self.select_element_from_element_list(el_list,
                                                                           k=len(el_list))
             for selected_element in selected_element_list:
-                if self._horizon_check(selected_element):
+                if self._horizon_check(selected_element, exploration_horizon=exploration_horizon):
                     return selected_element
         return None
     

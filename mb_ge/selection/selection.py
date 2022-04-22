@@ -9,14 +9,14 @@ class SelectionMethod():
             self._env_max_h = params['env_max_h']
         else:
             raise Exception('SelectionMethod _process_params error: env_max_h not in params')
-
-    def _horizon_check(self, el):
+        
+    def _horizon_check(self, el, exploration_horizon=0):
         traj_len = len(el.trajectory)
         prev_el = el.previous_element
         while prev_el != None:
             traj_len += len(prev_el.trajectory)
             prev_el = prev_el.previous_element
-        return (traj_len < self._env_max_h)
+        return (traj_len + exploration_horizon <= self._env_max_h)
 
     def _get_horizon_checked_element_list(self, elements):
         checked_elements = []
@@ -26,7 +26,7 @@ class SelectionMethod():
         return checked_elements
     
     @abstractmethod
-    def select_element_from_cell_archive(self, archive):
+    def select_element_from_cell_archive(self, archive, exploration_horizon=0):
         """
         Usually used to select which state to explore from.
         Args: 
