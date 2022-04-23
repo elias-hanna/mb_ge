@@ -39,7 +39,7 @@ class StateDisagreementSelection(SelectionMethod):
                 return selected_element
         return None
         
-    def select_element_from_element_list(self, elements, k=1, mode='trajectory'):
+    def select_element_from_element_list(self, elements, k=1, mode='state'):
         elements_ordered = self.get_ordered_element_list(elements, mode=mode)
         # elements_ordered, _ = self._batch_eval_all_elements(elements)
         return self._get_horizon_checked_element_list(elements_ordered)[:k]

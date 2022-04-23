@@ -4,9 +4,8 @@ from mb_ge.ge.ge import GoExplore
 import copy
 import os
 
-
-#### TEMPORARY
-from mb_ge.selection.state_disagreement_selection import StateDisagreementSelection
+## local includes
+from mb_ge.visualization.test_trajectories_processing import TestTrajectoriesProcessing
 
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
@@ -22,8 +21,10 @@ class ModelBasedGoExplore(GoExplore):
         self._transfer_selection_method = transfer_selection_method(params=params)
         self._actions_sampled = np.random.uniform(low=-1, high=1,
                                                   size=(self.nb_of_samples_per_state, self._action_dim))
-        # self.horrible_thing = StateDisagreementSelection(params=params)
-
+        self._test_trajectories_processing = TestTrajectoriesProcessing(params=params)
+        ## Need to pass whats below as a path to testtrajectories processing
+        self._test_trajectories = [] # each element of each traj is in the form of (A, S, NS) 
+        
     def _process_params(self, params):
         super()._process_params(params)
         if 'model_update_rate' in params:
@@ -33,7 +34,7 @@ class ModelBasedGoExplore(GoExplore):
         if 'nb_of_samples_per_state' in params:
             self.nb_of_samples_per_state = params['nb_of_samples_per_state']
         else:
-            raise Exception('StateDisagreementSelection _process_params error: nb_of_samples_per_state not in params')
+            raise Exception('ModelBasedGoExplore _process_params error: nb_of_samples_per_state not in params')
         if 'action_min' in params:
             self._action_min = params['action_min']
         else:
@@ -47,7 +48,7 @@ class ModelBasedGoExplore(GoExplore):
         if 'action_dim' in params['dynamics_model_params']:
             self._action_dim = params['dynamics_model_params']['action_dim']
         else:
-            raise Exception('StateDisagreementSelection _process_params error: action_dim not in params')
+            raise Exception('ModelBasedGoExplore _process_params error: action_dim not in params')
 
     def _correct_el(self, el, transitions):
         trajectory = []
@@ -106,7 +107,28 @@ class ModelBasedGoExplore(GoExplore):
             self._update_state_disagr(elements)
         if mode == 'trajectory':
             self._update_trajectory_disagr(elements)
-            
+
+    def _dump(self, itr, budget_used, sim_budget_used, plot_disagr=False, plot_novelty=False):
+        super()._dump(self, itr, budget_used, sim_budget_used,
+                      plot_disagr=plot_disagr, plot_novelty=plot_novelty):
+        if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
+            ## Plot test trajectories uncertainty and prediction error
+            self._test_trajectories_processing.dump_plots(self.dump_path, budget_used,
+                                                                     self._dump_checkpoints
+                                                                     [self.budget_dump_cpt])
+            ## Dump coverage data
+            os.makedirs(self.dump_path, exist_ok=True)
+            path_to_file = os.path.join(self.dump_path, 'coverage_data.npz')
+            np.savez(path_to_file, cells=self._dump_coverage, budget=self._dump_budget)
+            ## Dump qualitative plot of coverage and 
+            self.state_archive.dump_archive(self.dump_path, budget_used,
+                                            self._dump_checkpoints[self.budget_dump_cpt],
+                                            plot_disagr=plot_disagr, plot_novelty=plot_novelty)
+            self.budget_dump_cpt += 1
+
+        if sim_budget_used >= self._dump_checkpoints[self.sim_budget_dump_cpt]:
+            pass
+        
     def _exploration_phase(self):
         # reset gym environment
         obs = self.gym_env.reset()
@@ -143,7 +165,7 @@ class ModelBasedGoExplore(GoExplore):
 
             # Compute disagreement for imagined exploration elements
             # Compute trajectory disagreement for transfer selection
-            self._update_disagreement(i_elements, 'trajectory')
+            self._update_disagreement(i_elements, 'state')
             
             #####################################################
             sel_i_els = self._transfer_selection_method.select_element_from_element_list(i_elements)
