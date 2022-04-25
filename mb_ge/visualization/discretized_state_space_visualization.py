@@ -2,15 +2,21 @@ import numpy as np
 import copy
 import os
 import matplotlib.pyplot as plt
-from mb_ge.visualization.plot_utils import PlotUtils
 
-class DiscretizedStateSpaceVisualization():
+from mb_ge.visualization.visualization import VisualizationMethod
+
+class DiscretizedStateSpaceVisualization(VisualizationMethod):
     def __init__(self, params=None):
+        super().__init__(params=params)
+        self._process_params(params)
         self._rope_length = .3
-        self._disc_step = 0.02
+        self._pos_step = 0.1
+        self._vel_step = 0.5
         self._vel_min = 0.
         self._vel_max = 1.
 
+    def _process_params(self, params):
+        super()._process_params(params)
         if 'fixed_grid_min' in params:
             self._grid_min = params['fixed_grid_min']
         else:
@@ -19,6 +25,10 @@ class DiscretizedStateSpaceVisualization():
             self._grid_max = params['fixed_grid_max']
         else:
             raise Exception('DiscretizedStateSpaceVisualization _process_params error: fixed_grid_max not in params')
+        if 'fixed_grid_div' in params:
+            self._grid_div = params['fixed_grid_div']
+        else:
+            raise Exception('DiscretizedStateSpaceVisualization _process_params error: fixed_grid_div not in params')
         if 'model' in params:
             self.model = params['model']
         else:
@@ -46,78 +56,42 @@ class DiscretizedStateSpaceVisualization():
             raise Exception('DiscretizedStateSpaceVisualization _process_params error: dynamics_model_params not in params')
         if 'nb_of_samples_per_state' in params:
             self._samples_per_state = params['nb_of_samples_per_state']
-            self._action_sampled = np.random.uniform(low=-1, high=1,
-                                                     size=(self._samples_per_state,
-                                                           self._action_dim))
+            self._actions_sampled = np.random.uniform(low=-1, high=1,
+                                                      size=(self._samples_per_state,
+                                                            self._action_dim))
         else:
             raise Exception('DiscretizedStateSpaceVisualization _process_params error: fixed_grid_min not in params')
-
-    def _execute_test_trajectories_on_model():
-        controller_list = []
-
-        traj_list = []
-        disagreements_list = []
-        prediction_errors_list = []
-
-        pred_trajs = np.empty((len(self.test_trajectories), self.env_max_h, self.obs_dim))
-        disagrs = np.empty((len(self.test_trajectories), self.env_max_h))
-        pred_errors = np.empty((len(self.test_trajectories), self.env_max_h))
-        
-        A = np.empty((len(self.test_trajectories), self.action_dim))
-        S = np.empty((len(self.test_trajectories), self.obs_dim))
-        for _ in len(self.test_trajectories):
-            ## Create a copy of the controller
-            controller_list.append(self.controller.copy())
-            ## Set controller parameters
-            controller_list[-1].set_parameters(x)
-            ## Init starting state
-            S[i,:] = test_trajectories[i,0,:]
-        
-        for i in range(self.env_max_h):
-            for j in range(len(test_trajectories)):
-                A[j,:] = controller_list[S[i,:])
-                
-            batch_pred_delta_ns, batch_disagreement = model.forward_multiple(A, S, mean=True,
-                                                                             disagr=True)
-            for j in range(len(self.test_trajectories)):
-                ## Compute mean prediction from model samples
-                next_step_pred = batch_pred_delta_ns[i]
-                mean_pred = [np.mean(next_step_pred[:,i]) for i in range(len(next_step_pred[0]))]
-                S[i,:] += mean_pred.copy()
-                pred_trajs[j,i,:] = mean_pred.copy()
-                disagrs[j,i] = np.mean(batch_disagreement[i].detach().numpy())
-                pred_errors[j,i] = np.linalg.norm(S[i,:]-self.test_trajectories[j,i,:])
-
-        return pred_trajs, disagrs, pred_errors
 
     def _reachable(self, centroid):
         return (np.linalg.norm(centroid[:3]) < 0.3)
 
     def _get_centroids(self):
         centroids = []
-        for x in range(self._grid_min, self._grid_max, self._disc_step):
-            for y in range(self._grid_min, self._grid_max, self._disc_step):
-                for z in range(self._grid_min, self._grid_max, self._disc_step):
-                    for vx in range(self._vel_min, self._vel_max, self._disc_step):
-                        for vy in range(self._vel_min, self._vel_max, self._disc_step):
-                            for vz in range(self._vel_min, self._vel_max, self._disc_step):
+        pos_range = np.arange(self._grid_min, self._grid_max, self._pos_step)
+        vel_range = np.arange(self._vel_min, self._vel_max, self._vel_step)
+        for x in pos_range:
+            for y in pos_range:
+                for z in pos_range:
+                    for vx in vel_range:
+                        for vy in vel_range:
+                            for vz in vel_range:
                                 centroid = [x, y, z, vx, vy, vz]
                                 if self._reachable(centroid):
                                     centroids.append(centroid)
         return centroids
 
     def _get_state_disagr(self, centroids):
-        A = np.tile(self._actions_sampled, (len(elements), 1))
+        A = np.tile(self._actions_sampled, (len(centroids), 1))
 
         all_s = []
         # Get all states to estimate uncertainty for
         for centroid in centroids:
             all_s.append(centroid)
-        S = np.repeat(all_s, self.nb_of_samples_per_state, axis=0)
+        S = np.repeat(all_s, self._samples_per_state, axis=0)
         # Batch prediction
-        batch_pred_delta_ns, batch_disagreement = self._dynamics_model.forward_multiple(A, S,
-                                                                                        mean=True,
-                                                                                        disagr=True)
+        batch_pred_delta_ns, batch_disagreement = self.model.forward_multiple(A, S,
+                                                                              mean=True,
+                                                                              disagr=True)
         centroids_disagrs = []
         for i in range(len(centroids)):
             disagrs = batch_disagreement[i*self._samples_per_state:
@@ -136,44 +110,40 @@ class DiscretizedStateSpaceVisualization():
         ## Use self.sampled_actions
         centroids_disagrs = self._get_state_disagr(centroids)
 
-        ## Plot data check hist below
+        ## Normalize disagr
+        min_disagr = min(centroids_disagrs)
+        max_disagr = max(centroids_disagrs)
+
+        norm_centroids_disagrs = (centroids_disagrs - np.min(centroids_disagrs))/ \
+                                 (np.max(centroids_disagrs) - np.min(centroids_disagrs))
         
-        ## Get results of test trajectories on model on last model update
-        pred_trajs, disagrs, pred_errors = self._execute_test_trajectories_on_model()
-
-        ## Compute mean and stddev of trajs disagreement
-        mean_disagr = np.mean(disagrs, axis=0)
-        std_disagr = np.std(disagrs, axis=0)
-        ## Compute mean and stddev of trajs prediction error
-        mean_pred_error = np.mean(pred_errors, axis=0)
-        std_pred_error = np.std(pred_errors, axis=0)
-
         ## Create fig and ax
-        fig = plt.figure(figsize=(8, 8), dpi=160)
-        ax = fig.add_subplot(111, projection='3d')
+        # fig = plt.figure(figsize=(8, 8), dpi=160)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
         ## Prepare plot 
-        PlotUtils.prepare_plot(plt, fig, ax)
+        # self.prepare_plot(plt, fig, ax, mode='2d')
 
-        ## Figure for model ensemble disagreement
-        plt.figure()
-        plt.plot(label, mean_disagr, 'k-')
-        plt.fill_between(label, mean_disagr-std_disagr, mean_disagr+std_disagr,
-                         facecolor='green', alpha=0.5)
-        ## Set plot title
-        plt.title(f"Mean model ensemble disagreeement along successful test trajectories")
-        ## Save fig
-        plt.savefig(f"{self.dump_path}/results_{itr}/test_trajectories_disagr",
-                    bbox_inches='tight')
+        ## Plot histogram
+        bins = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1]
+
+        n, bins, patches = plt.hist(norm_centroids_disagrs, bins=bins, rwidth=.5)
+
+        plt.title(f"Disagreement repartition in whole state space\nmin disagreement={min_disagr} and max disagreement={max_disagr}")
+        plt.xlabel("Normalized value of disagreement for data samples")
+        plt.ylabel("Number of data samples for each bin")
+
+        ## Modify labels to display value range
+        rects = ax.patches
+        labels = [str(bins[i])+"-"+str(bins[i+1]) for i in range(len(bins)-1)]
         
-        ## Figure for prediction error
-        plt.figure()
-        plt.plot(label, mean_pred_error, 'k-')
-        plt.fill_between(label, mean_pred_error-std_pred_error, mean_pred_error+std_pred_error,
-                         facecolor='green', alpha=0.5)
-        ## Set plot title
-        plt.title(f"Mean prediction error along successful test trajectories")
+        for rect, label in zip(rects, labels):
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2, height+0.01, label,
+                    ha='center', va='bottom')
+        
         ## Save fig
-        plt.savefig(f"{self.dump_path}/results_{itr}/test_trajectories_pred_error",
+        plt.savefig(f"{self.dump_path}/results_{itr}/test_trajectories_pred_error_{curr_budget}",
                     bbox_inches='tight')
 
         if show:
@@ -182,45 +152,4 @@ class DiscretizedStateSpaceVisualization():
 
 
 
-### Time to reach a coverage plot ###
-    plt.figure()
 
-    coverage_target_vals = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7,]# 0.8, 0.9, 1.]
-    ticks = [i+1 for i, v in enumerate(coverage_target_vals)]
-
-    rr_budget_to_reach = rr_budget_to_reach.item()
-    rh_budget_to_reach = rh_budget_to_reach.item()
-    mrs_budget_to_reach = mrs_budget_to_reach.item()
-
-    rr_budget_to_reach = {key: rr_budget_to_reach[key] for key in coverage_target_vals}
-    rh_budget_to_reach = {key: rh_budget_to_reach[key] for key in coverage_target_vals}
-    mrs_budget_to_reach = {key: mrs_budget_to_reach[key] for key in coverage_target_vals}
-
-    width = 0.1
-    p1 = [i - 1.5*width for i in ticks] 
-    p2 = [i for i in ticks] 
-    p3 = [i + 1.5*width for i in ticks]
-    
-    # import pdb; pdb.set_trace()
-    bp1 = plt.boxplot(rr_budget_to_reach.values(), patch_artist=True,
-                         boxprops=dict(facecolor="C0"), widths=width, positions=p1)
-    bp2 = plt.boxplot(rh_budget_to_reach.values(), patch_artist=True,
-                         boxprops=dict(facecolor="C1"), widths=width, positions=p2)
-    bp3 = plt.boxplot(mrs_budget_to_reach.values(), patch_artist=True,
-                         boxprops=dict(facecolor="C2"), widths=width, positions=p3)
-
-    plt.legend([bp1["boxes"][0], bp2["boxes"][0], bp3["boxes"][0]],
-               ['rr', 'rh', 'mrs'], loc='upper right')
-    # colors = ['pink', 'lightblue', 'lightgreen']
-    # bplots = [bplot1, bplot2, bplot3]
-    # for i in range(len(bplots)):
-        # for patch, color in zip(bplots[i]['boxes'], repeat(colors[i])):
-            # import pdb; pdb.set_trace()
-            # patch.set_facecolor(color)
-    
-    plt.xticks(ticks=ticks, labels=[str(i) for i in coverage_target_vals])
-
-    plt.savefig(f"budget_to_reach_all.jpg")
-
-    ### Show the plots ###
-    plt.show()

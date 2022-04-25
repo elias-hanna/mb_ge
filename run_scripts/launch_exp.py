@@ -98,7 +98,7 @@ if __name__ == '__main__':
         'controller_input_dim': 6,
         'controller_output_dim': 3,
         'n_hidden_layers': 2,
-        'n_neurons_per_hidden': 50
+        'n_neurons_per_hidden': 10
     }
     dynamics_model_params = \
     {
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         
         'epoch_mode': epoch_mode,
         'model_update_rate': 10,
-        'steps_per_epoch': 300, # unused if epoch_mode == model_update
+        'steps_per_epoch': 1000, # unused if epoch_mode == model_update
         'use_variable_model_horizon': use_variable_horizon,
         'min_horizon': 1, # 1 in mbpo # unused if use_variable_horizon == False
         'max_horizon': 25, # 25 in mbpo unused if use_variable_horizon == False
@@ -151,6 +151,8 @@ if __name__ == '__main__':
         'nb_of_samples_per_state': 10,
         'dump_all_transitions': False,
         'env_max_h': env.max_steps,
+
+        'path_to_test_trajectories':'example_trajectories.npz',
     }
     
 

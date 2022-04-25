@@ -7,7 +7,8 @@ class Archive():
     def __init__(self, params=None):
         ## Archive is a dict
         self._archive = dict()
-    
+        self._process_params(params)
+        
     def _process_params(self, params):
         if 'dump_path' in params:
             self.dump_path = params['dump_path']
@@ -45,10 +46,7 @@ class Archive():
         """
         raise NotImplementedError
 
-    def dump_archive(self, dump_path, budget_used, itr, plot_disagr=False, plot_novelty=False):
-        path_to_dir_to_create = os.path.join(self.dump_path, f'results_{itr}')
-        os.makedirs(path_to_dir_to_create, exist_ok=True)
-        self.visualize(budget_used, itr=itr, plot_disagr=plot_disagr, plot_novelty=plot_novelty)
+    def dump_archive(self, dump_path, budget_used, itr):
         total_num_of_els = 0
         all_max_len_desc = []
         all_max_len_params = []
@@ -69,11 +67,6 @@ class Archive():
                     all_max_len_params.append(max(len_params_in_cell))
                     all_max_len_traj.append(max(len_traj_in_cell))
                     
-        # total_num_of_els = sum([len(cell._elements)
-        # for cell in self.state_archive._archive.values()])
-        # len_desc = len(list(self.state_archive._archive.values())[0]._elements[0].descriptor)
-        # len_params = len(list(self.state_archive._archive.values())[0]._elements[0].policy_parameters)
-        # max_traj_len = max([len(list(self.state_archive._archive.values())[0]._elements)])
         if all_max_len_desc != [] and all_max_len_params != [] and all_max_len_traj != []:
             len_desc = max(all_max_len_desc)
             len_params = max(all_max_len_params)
@@ -97,146 +90,3 @@ class Archive():
             np.savez(f'{dump_path}/results_{itr}/prev_descriptors', prev_descriptors)
             np.savez(f'{dump_path}/results_{itr}/params', params)
             np.savez(f'{dump_path}/results_{itr}/policy_horizon', policy_horizon)
-                # for key in self.state_archive._archive.keys():
-                    # np.savez_compressed(f'{self.dump_path}/results_{itr}/archive_cell_{key}_itr_{itr}',
-                            # self.state_archive._archive[key]._elements)
-
-    def _prepare_plot(self, plt, fig, ax):
-        ## Set plot labels
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-
-        ## Set plot limits
-        x_min = y_min = z_min = self._grid_min
-        x_max = y_max = z_max = self._grid_max
-        
-        ax.set_xlim(x_min,x_max)
-        ax.set_ylim(y_min,y_max)
-        ax.set_zlim(z_min,z_max)
-
-        ## Set axes ticks (for the grid)
-        ticks = [self._grid_min + i*(self._grid_max - self._grid_min)/self._grid_div
-                 for i in range(self._grid_div)]
-        
-        ax.set_xticks(ticks)
-        ax.set_yticks(ticks)
-        ax.set_zticks(ticks)
-
-        ## Add grid to plot 
-        plt.grid(True,which="both", linestyle='--')
-
-        ## Set ticks label to show label for only 10 ticks
-        mod_val = len(ticks)//10 if len(ticks) > 50 else len(ticks)//5
-        ticks_labels = [round(ticks[i],2) if (i)%mod_val==0 else ' ' for i in range(len(ticks))]
-        ticks_labels[-1] = self._grid_max
-        ax.set_xticklabels(ticks_labels)
-        ax.set_yticklabels(ticks_labels)
-        ax.set_zticklabels(ticks_labels)
-
-        ## Invert zaxis for the plot to be like reality
-        plt.gca().invert_zaxis()
-        
-    def visualize(self, curr_budget, itr=0, show=False, plot_disagr=False, plot_novelty=False):
-        import matplotlib
-        import matplotlib.pyplot as plt
-        import matplotlib.cm as cm
-
-        import numpy as np
-        
-        x = []
-        y = []
-        z = []
-        disagrs = []
-        novelties = []
-        ## Add the BD data from archive:
-        for key in self._archive.keys():
-            elements = self._archive[key].get_elements()
-            for el in elements:
-                x.append(el.descriptor[0])
-                y.append(el.descriptor[1])
-                z.append(el.descriptor[2])
-                disagrs.append(el.end_state_disagr)
-                novelties.append(el.novelty)
-
-        ## Create fig and ax
-        fig = plt.figure(figsize=(8, 8), dpi=160)  
-        ax = fig.add_subplot(111, projection='3d')  
-
-        self._prepare_plot(plt, fig, ax)
-
-        ## Scatter plot 
-        ax.scatter(x, y, z)
-
-        ## Set plot title
-        plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
-
-        ## Save fig
-        plt.savefig(f"{self.dump_path}/results_{itr}/state_archive_at_{curr_budget}_eval", bbox_inches='tight')
-        
-        if plot_disagr:
-            fig = plt.figure(figsize=(8, 8), dpi=160)  
-            ax = fig.add_subplot(111, projection='3d')  
-
-            self._prepare_plot(plt, fig, ax)
-
-            min_disagr = np.min(disagrs)
-            max_disagr = np.max(disagrs)
-            ## Handle case where disagr can't be computed
-            can_plot = True
-            if (max_disagr - min_disagr) == 0:
-                can_plot = False
-                print("WARNING: Can't plot archive with disagreement")
-            if can_plot:
-                norm_disagr =  (disagrs - np.min(disagrs))/(np.max(disagrs)-np.min(disagrs))
-                
-                cm = plt.cm.get_cmap()
-                sc = ax.scatter(x, y, z, c=norm_disagr, cmap=cm)
-                clb = plt.colorbar(sc)
-                ## Round for cleaner plot
-                min_disagr = round(min_disagr,4)
-                max_disagr = round(max_disagr,4)
-                clb.set_label('Normalized model ensemble disagreement for each reached state')
-                clb.ax.set_title(f'min disagr={min_disagr} and max disagr={max_disagr}')
-                
-                ## Set plot title
-                plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
-                
-                ## Save fig
-                plt.savefig(f"{self.dump_path}/results_{itr}/disagr_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
-
-        if plot_novelty:
-            fig = plt.figure(figsize=(8, 8), dpi=160)  
-            ax = fig.add_subplot(111, projection='3d')  
-
-            self._prepare_plot(plt, fig, ax)
-
-            min_nov = np.min(novelties)
-            max_nov = np.max(novelties)
-            ## Handle case where novelty can't be computed
-            can_plot = True
-            if (max_nov - min_nov) == 0:
-                can_plot = False
-                print("WARNING: Can't plot archive with novelty")
-            if can_plot:
-                norm_nov =  (novelties - np.min(novelties))/(np.max(novelties)-np.min(novelties))
-                
-                cm = plt.cm.get_cmap()
-                sc = ax.scatter(x, y, z, c=norm_nov, cmap=cm)
-                clb = plt.colorbar(sc)
-                ## Round for cleaner plot
-                min_nov = round(min_nov,4)
-                max_nov = round(max_nov,4)
-                
-                clb.set_label('Normalized novelty for each reached state')
-                clb.ax.set_title(f'min nov={min_nov} and max nov={max_nov}')
-                
-                ## Set plot title
-                plt.title(f'State Archive at {curr_budget} evaluations', fontsize=8)
-                
-                ## Save fig
-                plt.savefig(f"{self.dump_path}/results_{itr}/novelty_state_archive_at_{curr_budget}_eval", bbox_inches='tight')
-
-        if show:
-            plt.show()
-        plt.close()

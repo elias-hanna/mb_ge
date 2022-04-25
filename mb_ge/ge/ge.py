@@ -4,6 +4,8 @@ import os
 import copy
 from sklearn.neighbors import KDTree
 
+from mb_ge.visualization.archive_visualization import ArchiveVisualization
+
 archive_list = []
 
 archive_nb_to_add = 6
@@ -20,11 +22,14 @@ class GoExplore():
         self._exploration_method = exploration_method(params=params)
         ## Intialize state_archive
         self.state_archive = state_archive(params)
+        params['archive'] = self.state_archive # grab the ref to pass it to vis methods
         self.gym_env = gym_env ## needs to be an already initialized env
         ## Transition Dataset initialization (used to train Dynamics Model)
         self.action_space_dim = self.gym_env.action_space.shape[0]
         self.observation_space_dim = self.gym_env.observation_space.shape[0]
         self.observed_transitions = []
+        ## Visualization methods
+        self.archive_visualization = ArchiveVisualization(params=params)
         ## Update params
         self.e = 0 # current epoch (1 epoch = 1 model update and potential horizon update)
         self.next_target_budget = self.steps_per_epoch
@@ -170,23 +175,45 @@ class GoExplore():
                                                        k=self._nb_nearest_neighbors)
                 el.novelty = sum(k_dists[0])/self._nb_nearest_neighbors
 
-    def _dump(self, itr, budget_used, sim_budget_used, plot_disagr=False, plot_novelty=False):
+    def _dump(self, itr, budget_used, sim_budget_used, plot=False,
+              plot_disagr=False, plot_novelty=False):
         self._dump_coverage.append(len(self.state_archive._archive.keys()))
         self._dump_budget.append(budget_used)
         if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
+            ## Dump last coverage data
             os.makedirs(self.dump_path, exist_ok=True)
             path_to_file = os.path.join(self.dump_path, 'coverage_data.npz')
             np.savez(path_to_file, cells=self._dump_coverage, budget=self._dump_budget)
+            ## Dump archive plot
+            budget_spent = self._dump_checkpoints[self.budget_dump_cpt]
+            path_to_dir_to_create = os.path.join(self.dump_path,
+                                                 f'results_{budget_spent}')
+            os.makedirs(path_to_dir_to_create, exist_ok=True)
+            self.archive_visualization.dump_plots(budget_used,
+                                                  self._dump_checkpoints[self.budget_dump_cpt],
+                                                  plot=plot,
+                                                  plot_disagr=plot_disagr,
+                                                  plot_novelty=plot_novelty)
+            ## Dump archive
             self.state_archive.dump_archive(self.dump_path, budget_used,
-                                            self._dump_checkpoints[self.budget_dump_cpt],
-                                            plot_disagr=plot_disagr, plot_novelty=plot_novelty)
+                                            self._dump_checkpoints[self.budget_dump_cpt])
             self.budget_dump_cpt += 1
 
         if sim_budget_used >= self._dump_checkpoints[self.sim_budget_dump_cpt]:
+            ## Dump archive plot
+            budget_spent = 'sim_' + str(self._dump_checkpoints[self.sim_budget_dump_cpt])
+            path_to_dir_to_create = os.path.join(self.dump_path,
+                                                 f'results_{budget_spent}')
+            os.makedirs(path_to_dir_to_create, exist_ok=True)
+            self.archive_visualization.dump_plots(sim_budget_used,
+                                                  'sim_'+str(self._dump_checkpoints
+                                                             [self.sim_budget_dump_cpt]),
+                                                  plot_disagr=plot_disagr,
+                                                  plot_novelty=plot_novelty)
+            ## Dump archive            
             self.state_archive.dump_archive(self.dump_path, sim_budget_used,
-                                            'sim_'+
-                                            str(self._dump_checkpoints[self.sim_budget_dump_cpt]),
-                                            plot_disagr=False, plot_novelty=True)
+                                            'sim_'+str(self._dump_checkpoints
+                                                       [self.sim_budget_dump_cpt]))
             self.sim_budget_dump_cpt += 1
         
     def _exploration_phase(self):
@@ -250,7 +277,7 @@ class GoExplore():
             # Update epoch, exploration horizon and model if relevant 
             to_print += self._update(itr, budget_used)
             # Dump data
-            self._dump(itr, budget_used, sim_budget_used, plot_novelty=True)
+            self._dump(itr, budget_used, sim_budget_used, plot=True)
             # Print
             print(to_print)
 

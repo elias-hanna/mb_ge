@@ -5,7 +5,8 @@ import copy
 import os
 
 ## local includes
-from mb_ge.visualization.test_trajectories_processing import TestTrajectoriesProcessing
+from mb_ge.visualization.discretized_state_space_visualization import DiscretizedStateSpaceVisualization
+from mb_ge.visualization.test_trajectories_visualization import TestTrajectoriesVisualization
 
 class ModelBasedGoExplore(GoExplore):
     def __init__(self, params=None, gym_env=None, cell_selection_method=None,
@@ -21,7 +22,9 @@ class ModelBasedGoExplore(GoExplore):
         self._transfer_selection_method = transfer_selection_method(params=params)
         self._actions_sampled = np.random.uniform(low=-1, high=1,
                                                   size=(self.nb_of_samples_per_state, self._action_dim))
-        self._test_trajectories_processing = TestTrajectoriesProcessing(params=params)
+        ## Visualization methods
+        self._test_trajectories_visualization = TestTrajectoriesVisualization(params=params)
+        self._discretized_state_space_visualization = DiscretizedStateSpaceVisualization(params=params)
         ## Need to pass whats below as a path to testtrajectories processing
         self._test_trajectories = [] # each element of each traj is in the form of (A, S, NS) 
         
@@ -71,6 +74,10 @@ class ModelBasedGoExplore(GoExplore):
                                     size=(self.nb_of_samples_per_state, self._action_dim))
             all_elements = self.state_archive.get_all_elements()
             self._update_disagreement(all_elements, 'state')
+            ## Various model dumps
+            self._model_dump(itr, budget_used, plot=False,
+                             plot_disagr=True, plot_novelty=True)
+            
             
         return to_print
 
@@ -108,26 +115,21 @@ class ModelBasedGoExplore(GoExplore):
         if mode == 'trajectory':
             self._update_trajectory_disagr(elements)
 
-    def _dump(self, itr, budget_used, sim_budget_used, plot_disagr=False, plot_novelty=False):
-        super()._dump(self, itr, budget_used, sim_budget_used,
-                      plot_disagr=plot_disagr, plot_novelty=plot_novelty):
-        if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
-            ## Plot test trajectories uncertainty and prediction error
-            self._test_trajectories_processing.dump_plots(self.dump_path, budget_used,
-                                                                     self._dump_checkpoints
-                                                                     [self.budget_dump_cpt])
-            ## Dump coverage data
-            os.makedirs(self.dump_path, exist_ok=True)
-            path_to_file = os.path.join(self.dump_path, 'coverage_data.npz')
-            np.savez(path_to_file, cells=self._dump_coverage, budget=self._dump_budget)
-            ## Dump qualitative plot of coverage and 
-            self.state_archive.dump_archive(self.dump_path, budget_used,
-                                            self._dump_checkpoints[self.budget_dump_cpt],
-                                            plot_disagr=plot_disagr, plot_novelty=plot_novelty)
-            self.budget_dump_cpt += 1
-
-        if sim_budget_used >= self._dump_checkpoints[self.sim_budget_dump_cpt]:
-            pass
+    def _model_dump(self, itr, budget_used, plot=False,
+                    plot_disagr=False, plot_novelty=False):
+        
+        ## Plot test trajectories data (disagreement and prediction error)
+        ## Create folder if not created already
+        path_to_create = os.path.join(self.dump_path, 'results_test_trajectories_vis')
+        os.makedirs(path_to_create, exist_ok=True)
+        self._test_trajectories_visualization.dump_plots(budget_used,
+                                                         itr='results_test_trajectories_vis')
+        ## Plot discretized state space visualization
+        ## Create folder if not created already
+        path_to_create = os.path.join(self.dump_path, 'results_discretized_ss_vis')
+        os.makedirs(path_to_create, exist_ok=True)
+        self._discretized_state_space_visualization.dump_plots(budget_used,
+                                                               itr='discretized_ss_vis')
         
     def _exploration_phase(self):
         # reset gym environment
@@ -212,7 +214,8 @@ class ModelBasedGoExplore(GoExplore):
             # Update epoch, exploration horizon and model if relevant
             to_print += self._update(itr, budget_used, transitions)
             # Dump data
-            self._dump(itr, budget_used, sim_budget_used, plot_novelty=True, plot_disagr=True)
+            self._dump(itr, budget_used, sim_budget_used, plot=True,
+                       plot_novelty=True, plot_disagr=True)
             # Print
             print(to_print)
 
