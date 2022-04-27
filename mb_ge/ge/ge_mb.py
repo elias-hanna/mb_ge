@@ -22,11 +22,21 @@ class ModelBasedGoExplore(GoExplore):
         self._transfer_selection_method = transfer_selection_method(params=params)
         self._actions_sampled = np.random.uniform(low=-1, high=1,
                                                   size=(self.nb_of_samples_per_state, self._action_dim))
+        ## Some data fields for dump
+        self._min_disagr = []
+        self._max_disagr = []
         ## Visualization methods
         self._test_trajectories_visualization = TestTrajectoriesVisualization(params=params)
         self._discretized_state_space_visualization = DiscretizedStateSpaceVisualization(params=params)
         ## Need to pass whats below as a path to testtrajectories processing
         self._test_trajectories = [] # each element of each traj is in the form of (A, S, NS) 
+        ## Create directories for dumps
+        path_to_create = os.path.join(self.dump_path, 'results_test_trajectories_vis/disagr')
+        os.makedirs(path_to_create, exist_ok=True)
+        path_to_create = os.path.join(self.dump_path, 'results_test_trajectories_vis/pred_error')
+        os.makedirs(path_to_create, exist_ok=True)
+        path_to_create = os.path.join(self.dump_path, 'results_discretized_ss_vis')
+        os.makedirs(path_to_create, exist_ok=True)
         
     def _process_params(self, params):
         super()._process_params(params)
@@ -85,6 +95,8 @@ class ModelBasedGoExplore(GoExplore):
         A = np.tile(self._actions_sampled, (len(elements), 1))
 
         all_s = []
+        min_d = np.inf
+        max_d = 0
         # Get all states to estimate uncertainty for
         for element in elements:
             all_s.append(element.trajectory[-1])
@@ -101,7 +113,14 @@ class ModelBasedGoExplore(GoExplore):
             
             end_state_disagrs.append(np.mean([np.mean(disagr.detach().numpy()) for disagr in el_disagrs]))
             elements[i].end_state_disagr = end_state_disagrs[-1]
-
+            if end_state_disagrs[-1] < min_d:
+                min_d = end_state_disagrs[-1]
+            if end_state_disagrs[-1] > max_d:
+                max_d = end_state_disagrs[-1]
+        ## Add min and max disagr
+        self._min_disagr.append(min_d)
+        self._max_disagr.append(max_d)
+        
     def _update_trajectory_disagr(self, elements):
         all_s = []
         # Get all states to estimate uncertainty for
@@ -117,17 +136,13 @@ class ModelBasedGoExplore(GoExplore):
 
     def _model_dump(self, itr, budget_used, plot=False,
                     plot_disagr=False, plot_novelty=False):
-        
+        ## Dump last min-max disagr data
+        path_to_file = os.path.join(self.dump_path, 'min_max_disagr.npz')
+        np.savez(path_to_file, min_disagr=self._min_disagr, max_disagr=self._max_disagr)
         ## Plot test trajectories data (disagreement and prediction error)
-        ## Create folder if not created already
-        path_to_create = os.path.join(self.dump_path, 'results_test_trajectories_vis')
-        os.makedirs(path_to_create, exist_ok=True)
         self._test_trajectories_visualization.dump_plots(budget_used,
-                                                         itr='results_test_trajectories_vis')
+                                                         itr='test_trajectories_vis')
         ## Plot discretized state space visualization
-        ## Create folder if not created already
-        path_to_create = os.path.join(self.dump_path, 'results_discretized_ss_vis')
-        os.makedirs(path_to_create, exist_ok=True)
         self._discretized_state_space_visualization.dump_plots(budget_used,
                                                                itr='discretized_ss_vis')
         
@@ -156,8 +171,6 @@ class ModelBasedGoExplore(GoExplore):
             # Select a state to return from the archive
             el = self._cell_selection_method.select_element_from_cell_archive(self.state_archive,
                                                                               exploration_horizon=self.h_exploration)
-            print(el)
-            print(el.descriptor)
             # Go to and Explore in imagination from the selected state
             i_elements, i_b_used = self._exploration_method(self._dynamics_model, el,
                                                             self.h_exploration, eval_on_model=True)
@@ -175,7 +188,6 @@ class ModelBasedGoExplore(GoExplore):
             transitions = []
             for sel_i_el in sel_i_els:
                 loc_trans, loc_b_used = self._go_method.go(self.gym_env, sel_i_el)
-                # transitions, b_used = self._go_method.go(self.gym_env, sel_i_el)
                 transitions.append(loc_trans)
                 ## Update sim and real system budget used for each se_i_el we go to
                 budget_used += loc_b_used

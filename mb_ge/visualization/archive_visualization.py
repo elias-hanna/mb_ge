@@ -38,11 +38,14 @@ class ArchiveVisualization(VisualizationMethod):
                 disagrs.append(el.end_state_disagr)
                 novelties.append(el.novelty)
 
+        limits = [self._grid_min, self._grid_max,   # x
+                  self._grid_min, self._grid_max,   # y
+                  self._grid_min, self._grid_max, ] # z
         if plot:
             ## Create fig and ax
             fig = plt.figure(figsize=(8, 8), dpi=160)  
             ax = fig.add_subplot(111, projection='3d')  
-            
+
             self.prepare_plot(plt, fig, ax)
             
             ## Scatter plot 

@@ -15,7 +15,6 @@ class TestTrajectoriesVisualization(VisualizationMethod):
         if 'path_to_test_trajectories' in params:
             self.test_trajectories = np.load(params['path_to_test_trajectories'])['examples']
             self.test_params = np.load(params['path_to_test_trajectories'])['params']
-            # import pdb; pdb.set_trace()
             ## /!\ Warning, trajs must be of shape (nb_of_trajs, nb_of_steps, state_dim)
         else:
             raise Exception('TestTrajectoriesVisualization _process_params error: path_to_test_trajectories not in params')
@@ -70,7 +69,6 @@ class TestTrajectoriesVisualization(VisualizationMethod):
         for i in range(self.env_max_h):
             for j in range(len(self.test_trajectories)):
                 A[j,:] = controller_list[j](S[j,:])
-                
             batch_pred_delta_ns, batch_disagreement = self.model.forward_multiple(A, S,
                                                                                   mean=True,
                                                                                   disagr=True)
@@ -82,7 +80,9 @@ class TestTrajectoriesVisualization(VisualizationMethod):
                 pred_trajs[j,i,:] = mean_pred.copy()
                 disagrs[j,i] = np.mean(batch_disagreement[j].detach().numpy())
                 pred_errors[j,i] = np.linalg.norm(S[j,:]-self.test_trajectories[j,i,:])
-
+                if pred_errors[j, i] == np.inf or pred_errors[j, i] > 100:
+                    pred_errors[j, i] = np.nan
+                    
         return pred_trajs, disagrs, pred_errors
         
     def dump_plots(self, curr_budget, itr=0, show=False):
@@ -95,37 +95,47 @@ class TestTrajectoriesVisualization(VisualizationMethod):
         ## Compute mean and stddev of trajs prediction error
         mean_pred_error = np.nanmean(pred_errors, axis=0)
         std_pred_error = np.nanstd(pred_errors, axis=0)
-
         ## Create fig and ax
-        fig = plt.figure(figsize=(8, 8), dpi=160)
-        ax = fig.add_subplot(111, projection='3d')
-        ## Prepare plot 
-        self.prepare_plot(plt, fig, ax)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ## Prepare plot
+        labels = ['Steps', 'Mean disagreement']
+        limits = [0, len(mean_disagr),
+                  min(mean_disagr-std_disagr), max(mean_disagr+std_disagr)]
+        self.prepare_plot(plt, fig, ax, mode='2d', limits=limits, ax_labels=labels)
 
         ## Figure for model ensemble disagreement
-        plt.plot(label, mean_disagr, 'k-')
-        plt.fill_between(label, mean_disagr-std_disagr, mean_disagr+std_disagr,
+        plt.plot(range(len(mean_disagr)), mean_disagr, 'k-')
+        plt.fill_between(range(len(mean_disagr)),
+                         mean_disagr-std_disagr,
+                         mean_disagr+std_disagr,
                          facecolor='green', alpha=0.5)
         ## Set plot title
         plt.title(f"Mean model ensemble disagreeement along successful test trajectories")
         ## Save fig
-        plt.savefig(f"{self.dump_path}/results_{itr}/test_trajectories_disagr",
+        plt.savefig(f"{self.dump_path}/results_{itr}/disagr/test_trajectories_disagr_{curr_budget}",
                     bbox_inches='tight')
 
         ## Create fig and ax
-        fig = plt.figure(figsize=(8, 8), dpi=160)
-        ax = fig.add_subplot(111, projection='3d')
-        ## Prepare plot 
-        self.prepare_plot(plt, fig, ax)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ## Prepare plot
+        labels = ['Steps', 'Mean prediction error']
+        limits = [0, len(mean_pred_error),
+                  # min(mean_pred_error-std_pred_error), max(mean_pred_error+std_pred_error)]
+                  0, 10]
+        self.prepare_plot(plt, fig, ax, mode='2d', limits=limits, ax_labels=labels)
 
         ## Figure for prediction error
-        plt.plot(label, mean_pred_error, 'k-')
-        plt.fill_between(label, mean_pred_error-std_pred_error, mean_pred_error+std_pred_error,
+        plt.plot(range(len(mean_pred_error)), mean_pred_error, 'k-')
+        plt.fill_between(range(len(mean_pred_error)),
+                         mean_pred_error-std_pred_error,
+                         mean_pred_error+std_pred_error,
                          facecolor='green', alpha=0.5)
         ## Set plot title
         plt.title(f"Mean prediction error along successful test trajectories")
         ## Save fig
-        plt.savefig(f"{self.dump_path}/results_{itr}/test_trajectories_pred_error",
+        plt.savefig(f"{self.dump_path}/results_{itr}/pred_error/test_trajectories_pred_error_{curr_budget}",
                     bbox_inches='tight')
 
         if show:

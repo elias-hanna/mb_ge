@@ -4,16 +4,19 @@ import os
 import matplotlib.pyplot as plt
 
 from mb_ge.visualization.visualization import VisualizationMethod
-
+from mb_ge.visualization.plot_utils import progress_bar
+    
 class DiscretizedStateSpaceVisualization(VisualizationMethod):
     def __init__(self, params=None):
         super().__init__(params=params)
         self._process_params(params)
         self._rope_length = .3
-        self._pos_step = 0.1
-        self._vel_step = 0.5
-        self._vel_min = 0.
-        self._vel_max = 1.
+        self._pos_step = 0.2
+        self._vel_step = 1.
+        self._vel_min = -2
+        self._vel_max = 2
+        ## Discretize all state space as defined in params and get centroids
+        self._centroids = self._get_centroids()
 
     def _process_params(self, params):
         super()._process_params(params)
@@ -69,6 +72,8 @@ class DiscretizedStateSpaceVisualization(VisualizationMethod):
         centroids = []
         pos_range = np.arange(self._grid_min, self._grid_max, self._pos_step)
         vel_range = np.arange(self._vel_min, self._vel_max, self._vel_step)
+        print("Computing centroids for discretized state-spac visualization...")
+        progress_cpt = 0
         for x in pos_range:
             for y in pos_range:
                 for z in pos_range:
@@ -78,6 +83,10 @@ class DiscretizedStateSpaceVisualization(VisualizationMethod):
                                 centroid = [x, y, z, vx, vy, vz]
                                 if self._reachable(centroid):
                                     centroids.append(centroid)
+                                progress_bar(progress_cpt, len(pos_range))
+            progress_cpt += 1
+        print()
+        print("Finished computing centroids")
         return centroids
 
     def _get_state_disagr(self, centroids):
@@ -103,13 +112,9 @@ class DiscretizedStateSpaceVisualization(VisualizationMethod):
         return centroids_disagrs
     
     def dump_plots(self, curr_budget, itr=0, show=False):
-        ## Discretize all state space as defined in params and get centroids
-        centroids = self._get_centroids()
-
         ## For each centroid compute mean model ensemble disagreement over sampled actions
         ## Use self.sampled_actions
-        centroids_disagrs = self._get_state_disagr(centroids)
-
+        centroids_disagrs = self._get_state_disagr(self._centroids)
         ## Normalize disagr
         min_disagr = min(centroids_disagrs)
         max_disagr = max(centroids_disagrs)

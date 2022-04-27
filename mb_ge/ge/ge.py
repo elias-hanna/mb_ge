@@ -38,7 +38,9 @@ class GoExplore():
         self._nb_nearest_neighbors = 15
         self._dump_coverage = []
         self._dump_budget = []
-        
+        ## Create directories for dumps
+        os.makedirs(self.dump_path, exist_ok=True)
+
     def _process_params(self, params):
         ## Algorithm params
         if 'budget' in params:
@@ -181,7 +183,6 @@ class GoExplore():
         self._dump_budget.append(budget_used)
         if budget_used >= self._dump_checkpoints[self.budget_dump_cpt]:
             ## Dump last coverage data
-            os.makedirs(self.dump_path, exist_ok=True)
             path_to_file = os.path.join(self.dump_path, 'coverage_data.npz')
             np.savez(path_to_file, cells=self._dump_coverage, budget=self._dump_budget)
             ## Dump archive plot
