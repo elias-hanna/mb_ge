@@ -120,7 +120,7 @@ if __name__ == '__main__':
         'action_max': 1,
         
         'budget': budget,
-        'exploration_horizon': 10, # usually 10
+        'exploration_horizon': 50, # usually 10
         'nb_eval_exploration': 10, # usually 10
         'nb_thread_exploration': 6, # usually 6
 

@@ -45,7 +45,7 @@ class ArchiveVisualization(VisualizationMethod):
             ## Create fig and ax
             fig = plt.figure(figsize=(8, 8), dpi=160)  
             ax = fig.add_subplot(111, projection='3d')  
-
+x
             self.prepare_plot(plt, fig, ax)
             
             ## Scatter plot 

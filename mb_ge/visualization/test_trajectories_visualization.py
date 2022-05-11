@@ -9,7 +9,8 @@ class TestTrajectoriesVisualization(VisualizationMethod):
     def __init__(self, params=None):
         super().__init__(params=params)
         self._process_params(params)
-
+        self._pred_error_thresh = .03 # 3 cm
+        
     def _process_params(self, params):
         super()._process_params(params)
         if 'path_to_test_trajectories' in params:
@@ -95,6 +96,13 @@ class TestTrajectoriesVisualization(VisualizationMethod):
         ## Compute mean and stddev of trajs prediction error
         mean_pred_error = np.nanmean(pred_errors, axis=0)
         std_pred_error = np.nanstd(pred_errors, axis=0)
+        ## Get xcoord of pred error going above thresh
+        x_thresh = len(mean_pred_error)
+        for i in range(len(mean_pred_error)):
+            if mean_pred_error[i] > self._pred_error_thresh:
+                x_thresh = i
+                break
+            
         ## Create fig and ax
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -128,10 +136,17 @@ class TestTrajectoriesVisualization(VisualizationMethod):
 
         ## Figure for prediction error
         plt.plot(range(len(mean_pred_error)), mean_pred_error, 'k-')
+        
         plt.fill_between(range(len(mean_pred_error)),
                          mean_pred_error-std_pred_error,
                          mean_pred_error+std_pred_error,
                          facecolor='green', alpha=0.5)
+        ## Plot red line where prediction error goes above thresh 
+        plt.axvline(x=x_thresh, ls='--', c='red')
+        plt.text(x_thresh+0.1, 1,
+                 f'Mean prediction error above \n {self._pred_error_thresh}m threshold at step {x_thresh}',
+                 rotation=90, size='small')
+        
         ## Set plot title
         plt.title(f"Mean prediction error along successful test trajectories")
         ## Save fig
