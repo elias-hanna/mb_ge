@@ -40,6 +40,26 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         info["relative_ball_to_target_vel"] = self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:] # target - ball vel (target vel == cup vel)
         return done
 
+    def sample_q_vectors(self):
+        state_min = np.array([-0.4]*6); state_max = np.array([0.4]*6)
+        vel_min = -0.4; vel_max = 0.4
+
+        qpos = np.zeros(6)
+        qvel = np.zeros(6)
+        ## Sample qpos
+        # Sample pos for target
+        qpos[:3] = np.random.uniform(low=state_min[:3], high=state_max[:3], size=(3,))
+        # Sample pos for ball
+        qpos[3:] = np.random.uniform(low=state_min[3:]+qpos[:3], high=state_max[3:]+qpos[:3])
+        ## Sample qvel
+        qvel = np.random.uniform(low=vel_min, high=vel_max, size=(6,)) 
+        ## Recreate state from sampled qpos and qvel
+        s = [0]*6
+        s[:3] = qpos[:3] - qpos[3:]
+        s[3:6] = qvel[:3] - qvel[3:]
+        ## Return qpos, qvel and corresponding state
+        return qpos, qvel, s
+
     def _monitoring(self, reward):
         global steps_done, total_rew_seen
         steps_done += 1
