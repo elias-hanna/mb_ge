@@ -56,6 +56,8 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         ## Recreate state from sampled qpos and qvel
         s = [0]*6
         s[:3] = qpos[:3] - qpos[3:]
+        s[2] -= -.05 ## s reflects target pos not cup pos (which is .05 below cup)
+        s[2] += .3 ## qpos is actually at joint which is .3 further on z axis
         s[3:6] = qvel[:3] - qvel[3:]
         ## Return qpos, qvel and corresponding state
         return qpos, qvel, s
