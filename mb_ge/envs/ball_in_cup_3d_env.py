@@ -22,7 +22,7 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         
         utils.EzPickle.__init__(self)
         path_to_module = os.path.dirname(mb_ge.__file__)
-        mujoco_env.MujocoEnv.__init__(self, f"{path_to_module}/envs/assets/ball_in_cup_3d.xml", 2)
+        mujoco_env.MujocoEnv.__init__(self, "{}/envs/assets/ball_in_cup_3d.xml".format(path_to_module), 2)
         self.init_qpos = [0. ,0. ,0.   # initial cup position in cartesian space
                           ,0. ,0. ,0.] # initial ball posiiton in cartesian space
 
@@ -67,7 +67,7 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         steps_done += 1
         total_rew_seen += reward
         if steps_done%monitor_rate == 0:
-            print(f"{steps_done} steps done. Cumulated reward seen {total_rew_seen}")
+            print("{} steps done. Cumulated reward seen {}".format(steps_done, total_rew_seen))
         
     def step(self, a):
         reward_ctrl = -np.square(a).sum()
@@ -141,7 +141,7 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             return self.sim.data.site_xpos[1]
         elif site_name == "ball":
             return self.sim.data.site_xpos[2]
-        raise ValueError(f"{site_name} is not a valid option for get_site_pos method. Valid options are cup/target/ball")
+        raise ValueError("{} is not a valid option for get_site_pos method. Valid options are cup/target/ball".format(site_name))
         
     def ball_to_target(self):
         """Returns the vector from the ball to the target."""
