@@ -19,16 +19,19 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self.random_init = random_init
         self.verbose = verbose
         self.relative_obs = relative_obs
-        
-        utils.EzPickle.__init__(self)
-        path_to_module = os.path.dirname(mb_ge.__file__)
-        mujoco_env.MujocoEnv.__init__(self, "{}/envs/assets/ball_in_cup_3d.xml".format(path_to_module), 2)
+
         self.init_qpos = [0. ,0. ,0.   # initial cup position in cartesian space
                           ,0. ,0. ,0.] # initial ball posiiton in cartesian space
 
         self.init_qvel = [0. ,0. ,0.   # initial cup velocity
                           ,0. ,0. ,0.] # initial ball velocity
-
+        major, minor, patch = mujoco_env.gym.__version__.split('.')
+        self.major = int(major);self.minor = int(minor);self.patch = int(minor)
+        
+        utils.EzPickle.__init__(self)
+        path_to_module = os.path.dirname(mb_ge.__file__)
+        mujoco_env.MujocoEnv.__init__(self, "{}/envs/assets/ball_in_cup_3d.xml".format(path_to_module), 2)
+        
     def _is_done(self, info):
         done = False
         if self.in_target():
@@ -37,7 +40,10 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             info["TimeLimit.truncated"] = not done
             done = True
         info["relative_ball_to_target_pos"] = self.ball_to_target()
-        info["relative_ball_to_target_vel"] = self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:] # target - ball vel (target vel == cup vel)
+        if self.minor > 9:
+            info["relative_ball_to_target_vel"] = self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:] # target - ball vel (target vel == cup vel)
+        else:
+            info["relative_ball_to_target_vel"] = self.data.qvel.flat[:3] - self.data.qvel.flat[3:] # target - ball vel (target vel == cup vel)
         return done
 
     def sample_q_vectors(self):
@@ -86,6 +92,12 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         return obs, reward, done, info
 
+    def _step(self, a):
+        return self.step(a)
+
+    # def _render(self, mode='human', close=False):
+    #     return self.render()
+    
     def viewer_setup(self):
         from mujoco_py.generated import const
         self.viewer._paused = True # start viewer paused
@@ -117,31 +129,57 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         return self.get_obs()
 
     def get_obs(self):
-        if self.relative_obs:
-            return np.concatenate((
-                # self.sim.data.qpos.flat[:3] - self.sim.data.qpos.flat[3:], # cup - ball pose
-                # self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:],) # cup - ball vel
-                self.get_site_pos("target") - self.get_site_pos("ball"), # target - ball pose
-                self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:],) # target - ball vel (target vel == cup vel)
-            )
+        if self.minor > 9:
+            if self.relative_obs:
+                return np.concatenate((
+                    # self.sim.data.qpos.flat[:3] - self.sim.data.qpos.flat[3:], # cup - ball pose
+                    # self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:],) # cup - ball vel
+                    self.get_site_pos("target") - self.get_site_pos("ball"), # target - ball pose
+                    self.sim.data.qvel.flat[:3] - self.sim.data.qvel.flat[3:],) # target - ball vel (target vel == cup vel)
+                )
+            else:
+                return np.concatenate((
+                    self.sim.data.qpos.flat[:3], # cup pose
+                    self.sim.data.qvel.flat[:3], # cup vel
+                    self.sim.data.qpos.flat[3:], # ball pose
+                    self.sim.data.qvel.flat[3:],) # ball vel
+                )
         else:
-            return np.concatenate((
-                self.sim.data.qpos.flat[:3], # cup pose
-                self.sim.data.qvel.flat[:3], # cup vel
-                self.sim.data.qpos.flat[3:], # ball pose
-                self.sim.data.qvel.flat[3:],) # ball vel
-            )
+            if self.relative_obs:
+                return np.concatenate((
+                    # self.data.qpos.flat[:3] - self.data.qpos.flat[3:], # cup - ball pose
+                    # self.data.qvel.flat[:3] - self.data.qvel.flat[3:],) # cup - ball vel
+                    self.get_site_pos("target") - self.get_site_pos("ball"), # target - ball pose
+                    self.data.qvel.flat[:3] - self.data.qvel.flat[3:],) # target - ball vel (target vel == cup vel)
+                )
+            else:
+                return np.concatenate((
+                    self.data.qpos.flat[:3], # cup pose
+                    self.data.qvel.flat[:3], # cup vel
+                    self.data.qpos.flat[3:], # ball pose
+                    self.data.qvel.flat[3:],) # ball vel
+                )
+            
     def get_relative_pos(self):
         return self.get_site_pos("target") - self.get_site_pos("ball") # target - ball pose
     
     def get_site_pos(self, site_name):
-        if site_name == "cup":
-            return self.sim.data.site_xpos[0]
-        elif site_name == "target":
-            return self.sim.data.site_xpos[1]
-        elif site_name == "ball":
-            return self.sim.data.site_xpos[2]
-        raise ValueError("{} is not a valid option for get_site_pos method. Valid options are cup/target/ball".format(site_name))
+        if self.minor > 9:
+            if site_name == "cup":
+                return self.sim.data.site_xpos[0]
+            elif site_name == "target":
+                return self.sim.data.site_xpos[1]
+            elif site_name == "ball":
+                return self.sim.data.site_xpos[2]
+            raise ValueError("{} is not a valid option for get_site_pos method. Valid options are cup/target/ball".format(site_name))
+        else:
+            if site_name == "cup":
+                return self.data.site_xpos[0]
+            elif site_name == "target":
+                return self.data.site_xpos[1]
+            elif site_name == "ball":
+                return self.data.site_xpos[2]
+            raise ValueError("{} is not a valid option for get_site_pos method. Valid options are cup/target/ball".format(site_name))
         
     def ball_to_target(self):
         """Returns the vector from the ball to the target."""
@@ -154,15 +192,39 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def in_target(self):
         """Returns 1 if the ball is in the target, 0 otherwise."""
         ball_to_target = abs(self.ball_to_target())
-        target_size = self.sim.model.site_size[1, [0, 1, 2]]
-        ball_size = self.sim.model.geom_size[2, 0]
+        if self.minor > 9:
+            target_size = self.sim.model.site_size[1, [0, 1, 2]]
+            ball_size = self.sim.model.geom_size[2, 0]
+        else:
+            target_size = self.model.site_size[1, [0, 1, 2]]
+            ball_size = self.model.geom_size[2, 0]
         return float(all(ball_to_target < target_size - ball_size))
 
     def get_reward(self):
         """Returns a dense or sparse reward."""
         if self.dense:
-            dist = self.get_site_pos("target") - self.get_site_pos("ball")
-            reward = -np.linalg.norm(dist)
+            ## This reward function creates an empty reward zone right below the cup
+            # dist = self.get_site_pos("target") - self.get_site_pos("ball")
+            # if abs(dist[0]) < .1 and abs(dist[1]) < .1 and dist[2] > 0 and dist[2] < .3:
+            #     return 0
+            # reward = -np.linalg.norm(dist)
+            
+            ## This reward function rewards policies lifting the ball while
+            ## mainting the rope tense as long as the ball is below the cup
+            ## If the ball goes above the cup, reward switches to be maximal
+            ## when the distance between the ball and the cup is minimal
+            rel_pos = self.get_site_pos("target") - self.get_site_pos("ball")
+            if rel_pos[2] > 0: ## Ball is below the cup
+                ## tense rew is between 0 and 1 (0 when close to cup, 1 when max tense)
+                tense_rew = np.linalg.norm(rel_pos)/.358 ## max norm is ~ 0.358
+                ## lifting rew is between 0 and 1 (0 when below cup, 1 when going above)
+                ## lowest rel_pos is ~ 0.358, highest is 0
+                lifting_rew = (rel_pos[2] - .358)/(0 - .358)
+                reward = lifting_rew + tense_rew
+            else: ## Ball is above the cup
+                ## target close rew is maximal when ball is in target
+                target_close_rew = 2 + 2*(np.linalg.norm(rel_pos) - .358)/(0 - .358)
+                reward = target_close_rew
         else:
             reward = self.in_target()
         return reward

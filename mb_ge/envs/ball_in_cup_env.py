@@ -45,7 +45,7 @@ class BallInCupEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         total_rew_seen += reward
         if steps_done%monitor_rate == 0:
             print("{} steps done. Cumulated reward seen {}".format(steps_done, total_rew_seen))
-        
+    
     def step(self, a):
         reward_ctrl = -np.square(a).sum()
         task_reward = self.get_reward()
@@ -63,6 +63,9 @@ class BallInCupEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         return obs, reward, done, info
 
+    def _step(self, a):
+        return self.step(a)
+        
     def viewer_setup(self):
         from mujoco_py.generated import const
         self.viewer._paused = True # start viewer paused
