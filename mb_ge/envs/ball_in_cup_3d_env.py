@@ -220,11 +220,16 @@ class BallInCup3dEnv(mujoco_env.MujocoEnv, utils.EzPickle):
                 ## lifting rew is between 0 and 1 (0 when below cup, 1 when going above)
                 ## lowest rel_pos is ~ 0.358, highest is 0
                 lifting_rew = (rel_pos[2] - .358)/(0 - .358)
+                obs = self.get_obs()
+                speed_rew = -obs[-1]*2
                 reward = lifting_rew + tense_rew
+                # reward = speed_rew + tense_rew
             else: ## Ball is above the cup
                 ## target close rew is maximal when ball is in target
                 target_close_rew = 2 + 2*(np.linalg.norm(rel_pos) - .358)/(0 - .358)
                 reward = target_close_rew
+            if self.in_target():
+                return 1000. ## big reward when in target
         else:
             reward = self.in_target()
         return reward
